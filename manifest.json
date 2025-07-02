@@ -5,7 +5,8 @@
    "manifest_version": 3,
    "permissions" : [
       "storage",
-      "alarms"
+      "alarms",
+      "sidePanel"
    ],
    "host_permissions": [
       "http://ws.audioscrobbler.com/",
@@ -25,6 +26,9 @@
    "action" : {
       "default_popup" : "html/popup.html",
       "default_icon" : "img/main-icon.png"
+   },
+   "side_panel": {
+     "default_path": "html/sidebar.html"
    },
    "content_scripts" : [
       {

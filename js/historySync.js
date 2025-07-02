@@ -26,10 +26,8 @@
     dateFitleredSongs.forEach((song) => {
       const ts = Math.round(Date.now() / 1000);
       
-      // Use sync version for tests, async for production
-      if (typeof module !== 'undefined' && module.exports) {
-        // Test environment - use sync version
-        const isDup = cache.is_already_scrobbled_sync(song.artist, song.title, song.album, ts);
+      // Always use async version; tests will mock this path accordingly.
+      cache.is_already_scrobbled(song.artist, song.title, song.album, ts, (isDup) => {
         if (!isDup) {
           filtered.push(song);
         }
@@ -37,18 +35,7 @@
         if (processedCount === dateFitleredSongs.length) {
           callback(filtered);
         }
-      } else {
-        // Production environment - use async version
-        cache.is_already_scrobbled(song.artist, song.title, song.album, ts, (isDup) => {
-          if (!isDup) {
-            filtered.push(song);
-          }
-          processedCount++;
-          if (processedCount === dateFitleredSongs.length) {
-            callback(filtered);
-          }
-        });
-      }
+      });
     });
   }
 
