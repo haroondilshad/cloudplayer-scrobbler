@@ -8,6 +8,18 @@
     Scrobble long tracks multiple times (once every <span id="minute_field"></span>
     minutes)?: <input id="scrobble_mult" type="checkbox"/><br/>
     Enable logging (for debugging): <input id="log_checkbox" type="checkbox"/><br/>
+    History sync schedule:<br/>
+    <input type="radio" id="sync_interval_disabled" name="sync_interval" value="0">
+    <label for="sync_interval_disabled">Disabled (manual)</label><br/>
+    <input type="radio" id="sync_interval_60" name="sync_interval" value="60">
+    <label for="sync_interval_60">Every hour</label><br/>
+    <input type="radio" id="sync_interval_360" name="sync_interval" value="360">
+    <label for="sync_interval_360">Every 6 hours</label><br/>
+    <input type="radio" id="sync_interval_1440" name="sync_interval" value="1440">
+    <label for="sync_interval_1440">Every day</label><br/>
+    <input type="radio" id="sync_interval_custom" name="sync_interval" value="custom">
+    <label for="sync_interval_custom">Custom (minutes):</label>
+    <input id="history_sync_interval" type="number" min="1" step="1" style="width:60px;" disabled><br/>
     <br/>
     <div style="color:#066600" id="status"></div>
     <button id="save">Save</button>
