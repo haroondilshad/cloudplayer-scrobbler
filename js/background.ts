@@ -1,21 +1,48 @@
 /**
- * background.js
+ * background.ts
  * Background page script
  * Copyright (c) 2011 Alexey Savartsov <asavartsov@gmail.com>
  * Licensed under the MIT license
  */
-log("background.js loaded");
-var player = {}; // Previous player state
-var time_played = 0;
-var last_refresh = (new Date()).getTime();
-var num_scrobbles = 0;
-var curr_song_title = '';
+import { SETTINGS } from "./settings";
+import { scrobbleCache } from "./scrobbleCache";
+import { historySync } from "./historySync";
+import { log } from "./logging";
+import { find_play_tab, open_play_tab } from "./util";
+import { LastFM } from "./lastfm";
+
+log("background.ts loaded");
+
+interface Song {
+  title: string;
+  artist: string;
+  album: string;
+  time: number;
+  album_artist?: string;
+  position?: number;
+}
+
+interface PlayerState {
+  has_song: boolean;
+  is_playing: boolean;
+  song: Song;
+}
+
+var player: Partial<PlayerState> = {}; // Previous player state
+var time_played: number = 0;
+var last_refresh: number = (new Date()).getTime();
+var num_scrobbles: number = 0;
+var curr_song_title: string = '';
 var lastfm_api = new LastFM(SETTINGS.api_key, SETTINGS.api_secret);
 
 // Load settings from storage
 chrome.storage.local.get(['session_key', 'session_name'], (result) => {
-  lastfm_api.session.key = result.session_key;
-  lastfm_api.session.name = result.session_name;
+  if (result.session_key) {
+    lastfm_api.session.key = result.session_key;
+  }
+  if (result.session_name) {
+    lastfm_api.session.name = result.session_name;
+  }
 });
 
 
@@ -25,7 +52,7 @@ if (!SETTINGS.scrobble) {
 
 // Connect event handlers
 chrome.runtime.onConnect.addListener(port_on_connect);
-// Message listener registration moved to service-worker.js, but keep the function for tests
+
 // Export on_message function for testing (tests import background.js directly)
 if (typeof module !== 'undefined' && module.exports) {
   chrome.runtime.onMessage.addListener(on_message);
@@ -36,7 +63,7 @@ bind_keyboard_shortcuts();
 /**
  * Handle messages from content scripts
  */
-function on_message(message, sender, sendResponse) {
+function on_message(message: any, sender: chrome.runtime.MessageSender, sendResponse: (response: any) => void) {
   if (message.action === 'process_history_songs') {
     historySync.processHistorySongs(message.songs);
     sendResponse({success: true});
@@ -60,7 +87,7 @@ function on_message(message, sender, sendResponse) {
 /**
  * Content script has connected to the extension
  */
-function port_on_connect(port) {
+function port_on_connect(port: chrome.runtime.Port) {
   log("Content script connected");
   port.onMessage.addListener(port_on_message);
   port.onDisconnect.addListener(port_on_disconnect);
@@ -70,7 +97,7 @@ function port_on_connect(port) {
 /**
  * New message arrives to the port
  */
-function port_on_message(message) {
+function port_on_message(message: PlayerState) {
   // Current player state
   var _p = message;
   var now = (new Date()).getTime();
@@ -84,10 +111,10 @@ function port_on_message(message) {
     return;
   }
 
-  if (_p.has_song) {
+  if (_p.has_song && _p.song) {
     // if the song changed or looped
     if (_p.song.title != curr_song_title ||
-        _p.song.position <= SETTINGS.refresh_interval) {
+        (_p.song.position && _p.song.position <= SETTINGS.refresh_interval)) {
       log("Started playing: " + _p.song.artist + " - " + _p.song.title);
       curr_song_title = _p.song.title;
       time_played = 0;
@@ -98,7 +125,7 @@ function port_on_message(message) {
         _p.song.artist,
         _p.song.album,
         _p.song.time,
-        function(response) {
+        function(response: any) {
            // TODO:
         }
       );
@@ -116,19 +143,12 @@ function port_on_message(message) {
         log("scrobble point: " + (_p.song.time * SETTINGS.scrobble_point));
         log("num_scrobbles: " + num_scrobbles);
 
-        scrobble_song(_p.song.artist,_p.song.album_artist,
+        scrobble_song(_p.song.artist, _p.song.album_artist,
           _p.song.album, _p.song.title,
           Math.round(new Date().getTime() / 1000 - time_played));
         time_played = 0;
         num_scrobbles += 1;
       } else {
-        /*
-        * Don't depend on the SETTINGS.refresh_interval to
-        * calculate time_played since there can be a significant delay
-        * between the time the message was sent from the contentscript
-        * to when it's recieved here.
-        * See: https://github.com/newgiin/cloudplayer-scrobbler/issues/23
-        */
         time_played += (now - last_refresh) / 1000;
       }
     } else {
@@ -142,10 +162,10 @@ function port_on_message(message) {
 }
 
 
-function scrobble_song(artist, album_artist, album, title, time) {
+function scrobble_song(artist?: string, album_artist?: string, album?: string, title?: string, time?: number) {
   // Scrobble this song
-  lastfm_api.scrobble(artist, album_artist, album, title, time,
-    function(response) {
+  lastfm_api.scrobble(artist!, album_artist!, album!, title!, time!,
+    function(response: any) {
       if (response.error) {
         if (response.error == 9) {
           // Session expired
@@ -154,7 +174,7 @@ function scrobble_song(artist, album_artist, album, title, time) {
         chrome.action.setIcon({'path': SETTINGS.error_icon});
       } else {
         // Track successful scrobble to prevent duplicates
-        add_to_scrobble_cache(artist, title, album, time);
+        add_to_scrobble_cache(artist!, title!, album!, time!);
         log("Successfully scrobbled and cached: " + artist + " - " + title);
       }
     });
@@ -166,7 +186,7 @@ var is_already_scrobbled = scrobbleCache.is_already_scrobbled;
 var cleanup_scrobble_cache = scrobbleCache.cleanup_scrobble_cache;
 var clear_scrobble_cache = scrobbleCache.clear_scrobble_cache;
 
-function is_advertisment(song) {
+function is_advertisment(song: Song): boolean {
   return (song.title === SETTINGS.gmusic_ads_metadata.title &&
           song.artist === SETTINGS.gmusic_ads_metadata.artist);
 }
@@ -223,8 +243,8 @@ function toggle_scrobble() {
 /**
  * Last.fm session request
  */
-function get_lastfm_session(token) {
-  lastfm_api.authorize(token, function(response) {
+function get_lastfm_session(token: string) {
+  lastfm_api.authorize(token, function(response: any) {
     // Save session
     if (response.session) {
       chrome.storage.local.set({
@@ -238,7 +258,7 @@ function get_lastfm_session(token) {
 
 function bind_keyboard_shortcuts() {
   chrome.commands.onCommand.addListener(
-    function(command) {
+    function(command: string) {
       switch (command) {
         case 'toggle_play':
           send_cmd_to_play_tab('tgl');
@@ -260,10 +280,10 @@ function bind_keyboard_shortcuts() {
 }
 
 
-function send_cmd_to_play_tab(cmd) {
+function send_cmd_to_play_tab(cmd: string) {
   find_play_tab(
-    function(tab) {
-      if (tab) {
+    function(tab?: chrome.tabs.Tab) {
+      if (tab && tab.id) {
         chrome.tabs.sendMessage(tab.id, {cmd: cmd}, function() {});
       } else {
         log("Unable to find Play tab");
@@ -302,7 +322,7 @@ function schedule_history_sync() {
 schedule_history_sync();
 
 // Listen for alarm events to trigger automatic history sync
-chrome.alarms.onAlarm.addListener(function(alarm) {
+chrome.alarms.onAlarm.addListener(function(alarm: chrome.alarms.Alarm) {
   if (alarm && alarm.name === 'history_sync') {
     log('Alarm fired: history_sync');
     start_history_sync(); // Use default logic (sync from last sync)
@@ -318,7 +338,7 @@ chrome.alarms.onAlarm.addListener(function(alarm) {
  * @param {number} [syncFromTimestamp] – Unix ms timestamp to sync from.
  *   If omitted, it defaults to last_history_sync (if present) otherwise now.
  */
-function start_history_sync(syncFromTimestamp) {
+function start_history_sync(syncFromTimestamp?: number) {
   // Determine the sync start timestamp
   var ts = typeof syncFromTimestamp === 'number' ? syncFromTimestamp : null;
   if (!ts) {
@@ -333,7 +353,7 @@ function start_history_sync(syncFromTimestamp) {
   }
 }
 
-function continueHistorySync(ts) {
+function continueHistorySync(ts: number) {
 
   // Mark sync session so content scripts know to scrape
   if (typeof historySync !== 'undefined' && historySync.startHistorySync) {
@@ -350,7 +370,7 @@ function continueHistorySync(ts) {
   // Open or reload the YT Music history page in a background tab
   var historyUrlPrefix = 'https://music.youtube.com/history';
   chrome.tabs.query({ url: historyUrlPrefix + '*' }, function(tabs) {
-    if (tabs && tabs.length > 0) {
+    if (tabs && tabs.length > 0 && tabs[0].id) {
       // Reload the first matching tab to trigger scraping
       chrome.tabs.reload(tabs[0].id);
     } else {
@@ -361,6 +381,46 @@ function continueHistorySync(ts) {
 }
 
 // Expose the function so popup can call it (bp.start_history_sync)
+// @ts-ignore
 this.start_history_sync = start_history_sync;
 
 // =================== End History Sync Scheduling ========================
+// Export functions for testing
+// @ts-ignore
+this.on_message = on_message;
+// @ts-ignore
+this.port_on_connect = port_on_connect;
+// @ts-ignore
+this.port_on_message = port_on_message;
+// @ts-ignore
+this.port_on_disconnect = port_on_disconnect;
+// @ts-ignore
+this.scrobble_song = scrobble_song;
+// @ts-ignore
+this.is_advertisment = is_advertisment;
+// @ts-ignore
+this.start_web_auth = start_web_auth;
+// @ts-ignore
+this.clear_session = clear_session;
+// @ts-ignore
+this.toggle_scrobble = toggle_scrobble;
+// @ts-ignore
+this.get_lastfm_session = get_lastfm_session;
+// @ts-ignore
+this.schedule_history_sync = schedule_history_sync;
+// @ts-ignore
+this.continueHistorySync = continueHistorySync;
+
+// Expose variables for testing
+// @ts-ignore
+this.player = player;
+// @ts-ignore
+this.time_played = time_played;
+// @ts-ignore
+this.last_refresh = last_refresh;
+// @ts-ignore
+this.num_scrobbles = num_scrobbles;
+// @ts-ignore
+this.curr_song_title = curr_song_title;
+// @ts-ignore
+this.lastfm_api = lastfm_api;
