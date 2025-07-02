@@ -1,5 +1,5 @@
 {
-   "name" : "YouTube Music Last.fm Scrobbler",
+   "name" : "YouTube Music Last.fm Scrobbler - HD",
    "description" : "Scrobbles songs from YouTube Music or Google Play to Last.fm",
    "version" : "2.0.2",
    "manifest_version": 2,
@@ -7,7 +7,8 @@
       "http://ws.audioscrobbler.com/",
       "http://play.google.com/",
       "https://play.google.com/",
-      "https://music.youtube.com/"
+      "https://music.youtube.com/",
+      "alarms"
    ],
    "background": {
     "scripts": [
@@ -16,6 +17,9 @@
       "js/settings.js",
       "js/util.js",
       "js/logging.js",
+      "js/scrobbleCache.js",
+      "js/historyUtils.js",
+      "js/historySync.js",
       "js/background.js"
     ],
     "persistent": false
@@ -49,6 +53,14 @@
             "js/inject.js",
             "js/settings.js",
             "js/ytm_contentscript.js"
+         ]
+      },
+      {
+         "matches" : [
+            "*://music.youtube.com/history*"
+         ],
+         "js" : [
+            "js/history_parser.js"
          ]
       },
       {

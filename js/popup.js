@@ -20,6 +20,19 @@ $(document).ready(function() {
             render_scrobble_link();
         }
         render_auth_link();
+        $("#sync-history-btn").click(on_sync_history);
+        
+        // Handle date selection radio buttons
+        $("input[name='sync-date']").change(function() {
+            if ($(this).val() === 'custom') {
+                $("#custom-sync-date").prop('disabled', false);
+            } else {
+                $("#custom-sync-date").prop('disabled', true);
+            }
+        });
+        
+        // Show last sync info if available
+        render_sync_info();
     });
 });
 
@@ -268,4 +281,55 @@ function show_alert() {
         $("#alert").addClass("hidden");
         localStorage.setItem("seen_alert", "1");
     });
+}
+
+/**
+ * Render sync information
+ */
+function render_sync_info() {
+    var lastSync = localStorage.getItem('last_history_sync');
+    if (lastSync) {
+        var lastSyncDate = new Date(parseInt(lastSync));
+        var dateStr = lastSyncDate.toLocaleDateString() + ' ' + lastSyncDate.toLocaleTimeString();
+        $("#sync-status").html('Last sync: ' + dateStr).show();
+        
+        // Update radio button text to show "Since last sync"
+        $("label[for='sync-from-now']").text('Since last sync (' + lastSyncDate.toLocaleDateString() + ')');
+    } else {
+        // First time sync
+        $("label[for='sync-from-now']").text('Now (first sync)');
+    }
+}
+
+/**
+ * Sync History button was clicked
+ */
+function on_sync_history() {
+    // Get selected sync option
+    var syncOption = $("input[name='sync-date']:checked").val();
+    var syncFromDate = null;
+    
+    if (syncOption === 'custom') {
+        var customDate = $("#custom-sync-date").val();
+        if (!customDate) {
+            alert('Please select a custom date');
+            return;
+        }
+        syncFromDate = new Date(customDate).getTime();
+    } else {
+        // Use last sync time or current time for first sync
+        var lastSync = localStorage.getItem('last_history_sync');
+        syncFromDate = lastSync ? parseInt(lastSync) : Date.now();
+    }
+    
+    // Disable button to prevent multiple clicks
+    $("#sync-history-btn").prop('disabled', true).text('Syncing...');
+    $("#sync-status").html('Preparing sync...').show();
+    
+    // Tell background script to start history sync with date
+    bp.start_history_sync(syncFromDate);
+    
+    // Create/navigate to history tab
+    chrome.tabs.create({url: 'https://music.youtube.com/history'});
+    window.close();
 }

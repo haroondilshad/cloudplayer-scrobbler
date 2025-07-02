@@ -1,0 +1,17 @@
+{
+  "name": "cloudplayer-scrobbler",
+  "version": "1.0.0",
+  "description": "YouTube Music Last.fm scrobbler Chrome extension",
+  "scripts": {
+    "test": "jest"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "roots": ["<rootDir>/test"],
+    "setupFiles": ["<rootDir>/test/jest.setup.js"],
+    "clearMocks": true
+  }
+} 

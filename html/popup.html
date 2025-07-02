@@ -50,6 +50,22 @@
         <div id="bottom">
             <div id="scrobbling"></div>
             <div id="lastfm-profile"></div>
+            <div id="sync-history">
+                <div id="sync-date-controls" style="margin-bottom: 10px;">
+                    <label style="font-size: 12px; color: #666;">Sync from:</label>
+                    <div style="margin-top: 5px;">
+                        <input type="radio" id="sync-from-now" name="sync-date" value="now" checked>
+                        <label for="sync-from-now" style="font-size: 12px;">Now (default)</label>
+                    </div>
+                    <div style="margin-top: 3px;">
+                        <input type="radio" id="sync-from-date" name="sync-date" value="custom">
+                        <label for="sync-from-date" style="font-size: 12px;">Custom date:</label>
+                        <input type="date" id="custom-sync-date" style="margin-left: 5px; font-size: 11px;" disabled>
+                    </div>
+                </div>
+                <button id="sync-history-btn">Sync History</button>
+                <div id="sync-status" style="display: none; font-size: 12px; color: #666; margin-top: 5px;"></div>
+            </div>
         </div>
     </div>
 </body>

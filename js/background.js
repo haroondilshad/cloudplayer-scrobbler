@@ -23,8 +23,29 @@ if (!SETTINGS.scrobble) {
 
 // Connect event handlers
 chrome.runtime.onConnect.addListener(port_on_connect);
+chrome.runtime.onMessage.addListener(on_message);
 bind_keyboard_shortcuts();
 
+
+/**
+ * Handle messages from content scripts
+ */
+function on_message(message, sender, sendResponse) {
+  if (message.action === 'process_history_songs') {
+    historySync.processHistorySongs(message.songs);
+    sendResponse({success: true});
+  } else if (message.action === 'get_sync_params') {
+    var syncFromTimestamp = parseInt(localStorage.getItem('sync_from_timestamp')) || Date.now();
+    sendResponse({syncFromTimestamp: syncFromTimestamp});
+  } else if (message.action === 'sync_complete') {
+    log("Sync completed: " + message.message);
+    // Update last sync timestamp even when there were no new songs
+    localStorage.setItem('last_history_sync', Date.now());
+    localStorage.removeItem('history_sync_in_progress');
+    localStorage.removeItem('sync_from_timestamp');
+    sendResponse({success: true});
+  }
+}
 
 /**
  * Content script has connected to the extension
@@ -121,10 +142,19 @@ function scrobble_song(artist, album_artist, album, title, time) {
           clear_session();
         }
         chrome.browserAction.setIcon({'path': SETTINGS.error_icon});
+      } else {
+        // Track successful scrobble to prevent duplicates
+        add_to_scrobble_cache(artist, title, album, time);
+        log("Successfully scrobbled and cached: " + artist + " - " + title);
       }
     });
 }
 
+// Alias scrobble cache utility functions
+var add_to_scrobble_cache = scrobbleCache.add_to_scrobble_cache;
+var is_already_scrobbled = scrobbleCache.is_already_scrobbled;
+var cleanup_scrobble_cache = scrobbleCache.cleanup_scrobble_cache;
+var clear_scrobble_cache = scrobbleCache.clear_scrobble_cache;
 
 function is_advertisment(song) {
   return (song.title === SETTINGS.gmusic_ads_metadata.title &&
@@ -235,3 +265,80 @@ function send_cmd_to_play_tab(cmd) {
 function open_extensions_page() {
   chrome.tabs.create({url: 'chrome://extensions/'});
 }
+
+// ===================== History Sync Scheduling ==========================
+
+/**
+ * Schedule or clear the history sync alarm based on user settings.
+ * If SETTINGS.history_sync_interval is > 0, an alarm named 'history_sync'
+ * will fire every N minutes (where N is the interval). Otherwise any
+ * existing alarm will be cleared.
+ */
+function schedule_history_sync() {
+  chrome.alarms.clear('history_sync', function() {
+    if (SETTINGS.history_sync_interval && SETTINGS.history_sync_interval > 0) {
+      chrome.alarms.create('history_sync', {
+        periodInMinutes: SETTINGS.history_sync_interval
+      });
+      log('Scheduled history sync every ' + SETTINGS.history_sync_interval + ' minutes');
+    } else {
+      log('Automatic history sync disabled');
+    }
+  });
+}
+
+// Initialize alarm schedule at startup
+schedule_history_sync();
+
+// Listen for alarm events to trigger automatic history sync
+chrome.alarms.onAlarm.addListener(function(alarm) {
+  if (alarm && alarm.name === 'history_sync') {
+    log('Alarm fired: history_sync');
+    start_history_sync(); // Use default logic (sync from last sync)
+  }
+});
+
+/**
+ * Initiate a history sync session.
+ * This sets up localStorage flags so that content scripts can detect
+ * the sync session, then navigates (or reloads) the history page so the
+ * scraper can run.
+ *
+ * @param {number} [syncFromTimestamp] – Unix ms timestamp to sync from.
+ *   If omitted, it defaults to last_history_sync (if present) otherwise now.
+ */
+function start_history_sync(syncFromTimestamp) {
+  // Determine the sync start timestamp
+  var ts = typeof syncFromTimestamp === 'number' ? syncFromTimestamp : null;
+  if (!ts) {
+    var lastSync = localStorage.getItem('last_history_sync');
+    ts = lastSync ? parseInt(lastSync) : Date.now();
+  }
+
+  // Mark sync session so content scripts know to scrape
+  if (typeof historySync !== 'undefined' && historySync.startHistorySync) {
+    historySync.startHistorySync(ts);
+  } else {
+    // Fallback: store flags directly
+    localStorage.setItem('history_sync_in_progress', 'true');
+    localStorage.setItem('history_sync_start_time', Date.now());
+    localStorage.setItem('sync_from_timestamp', ts);
+  }
+
+  // Open or reload the YT Music history page in a background tab
+  var historyUrlPrefix = 'https://music.youtube.com/history';
+  chrome.tabs.query({ url: historyUrlPrefix + '*' }, function(tabs) {
+    if (tabs && tabs.length > 0) {
+      // Reload the first matching tab to trigger scraping
+      chrome.tabs.reload(tabs[0].id);
+    } else {
+      // Create a new inactive tab so we don't steal focus
+      chrome.tabs.create({ url: historyUrlPrefix, active: false });
+    }
+  });
+}
+
+// Expose the function so popup can call it (bp.start_history_sync)
+this.start_history_sync = start_history_sync;
+
+// =================== End History Sync Scheduling ========================

@@ -14,6 +14,9 @@ var SETTINGS = {
     scrobble_interval: 420, // 7 minutes
     max_scrobbles: Number.POSITIVE_INFINITY,
 
+    // NEW: default history sync interval in minutes (60 = hourly)
+    history_sync_interval: 60,
+
     refresh_interval: 2,
 
     gmusic_ads_metadata: {
@@ -28,6 +31,13 @@ SETTINGS.max_scrobbles = localStorage.getItem('max_scrobbles') &&
 
 SETTINGS.logs_enabled = localStorage.getItem('logs_enabled') &&
                             localStorage.getItem('logs_enabled') == 'true';
+
+// Load user-defined history sync interval.
+// If a value (including "0") is stored, use it; otherwise keep the default.
+var _storedInterval = localStorage.getItem('history_sync_interval');
+if (_storedInterval !== null) {
+    SETTINGS.history_sync_interval = parseInt(_storedInterval);
+}
 
 // This enables scrobbling by default
 SETTINGS.scrobble = localStorage.getItem("scrobble") != "false";
