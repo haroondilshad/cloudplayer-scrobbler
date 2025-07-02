@@ -1,28 +1,20 @@
 {
    "name" : "YouTube Music Last.fm Scrobbler",
    "description" : "Scrobbles songs from YouTube Music or Google Play to Last.fm",
-   "version" : "02.07.2025",
-   "manifest_version": 2,
+   "version" : "2.7.2025",
+   "manifest_version": 3,
    "permissions" : [
+      "storage",
+      "alarms"
+   ],
+   "host_permissions": [
       "http://ws.audioscrobbler.com/",
       "http://play.google.com/",
       "https://play.google.com/",
-      "https://music.youtube.com/",
-      "alarms"
+      "https://music.youtube.com/"
    ],
    "background": {
-    "scripts": [
-      "js/md5.js",
-      "js/lastfm.js",
-      "js/settings.js",
-      "js/util.js",
-      "js/logging.js",
-      "js/scrobbleCache.js",
-      "js/historyUtils.js",
-      "js/historySync.js",
-      "js/background.js"
-    ],
-    "persistent": false
+     "service_worker": "js/service-worker.js"
    },
    "icons" : {
       "128" : "img/icon128.png",
@@ -30,7 +22,7 @@
       "16" : "img/icon16.png",
       "48" : "img/icon48.png"
    },
-   "browser_action" : {
+   "action" : {
       "default_popup" : "html/popup.html",
       "default_icon" : "img/main-icon.png"
    },
@@ -76,7 +68,10 @@
    ],
    "options_page": "html/options.html",
    "web_accessible_resources": [
-    "html/lastfm_callback.html"
+      {
+         "resources": ["html/lastfm_callback.html"],
+         "matches": ["https://www.last.fm/*"]
+       }
     ],
     "commands": {
       "toggle_play": {

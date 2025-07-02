@@ -222,7 +222,7 @@ LastFM.prototype._req_sign = function(params) {
 };
 
 /**
- * Performs an XMLHTTP request and expects JSON as reply
+ * Performs a fetch request and expects JSON as reply
  *
  * @param method Request method (GET or POST)
  * @param params Hash with request values. All request fields will be
@@ -234,32 +234,39 @@ LastFM.prototype._xhr = function(method, params, callback) {
     var uri = this.API_ROOT;
     var _data = "";
     var _params = [];
-    var xhr = new XMLHttpRequest();
 
     for(param in params) {
         _params.push(encodeURIComponent(param) + "="
             + encodeURIComponent(params[param]));
     }
 
+    var fetchOptions = {
+        method: method,
+        headers: {
+            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+            "If-Modified-Since": "Thu, 01 Jun 1970 00:00:00 GMT",
+            "Pragma": "no-cache"
+        }
+    };
+
     switch(method) {
         case "GET":
             uri += '?' + _params.join('&').replace(/%20/, '+');
             break;
         case "POST":
-            _data = _params.join('&');
+            fetchOptions.body = _params.join('&');
             break;
         default:
+            callback(null);
             return;
     }
 
-    xhr.open(method, uri);
-
-    xhr.onreadystatechange = function() {
-        if (xhr.readyState == 4) {
+    fetch(uri, fetchOptions)
+        .then(response => response.text())
+        .then(responseText => {
             var reply;
-
             try {
-                reply = JSON.parse(xhr.responseText);
+                reply = JSON.parse(responseText);
                 if (reply.error) {
                     console.log('Last.fm ' + params.method +
                             ' error: ' + reply.error)
@@ -270,14 +277,12 @@ LastFM.prototype._xhr = function(method, params, callback) {
                 console.log('Error parsing JSON response.');
                 console.log('Request params:');
                 console.log(params);
+                console.log('Response text:', responseText);
             }
             callback(reply);
-        }
-    };
-
-    xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded; charset=UTF-8");
-    // The cache is a lie!
-    xhr.setRequestHeader("If-Modified-Since", "Thu, 01 Jun 1970 00:00:00 GMT");
-    xhr.setRequestHeader("Pragma", "no-cache");
-    xhr.send(_data || null);
+        })
+        .catch(error => {
+            console.log('Fetch error:', error);
+            callback(null);
+        });
 };

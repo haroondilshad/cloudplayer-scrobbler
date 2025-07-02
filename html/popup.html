@@ -4,9 +4,11 @@
  Copyright (c) 2011 Alexey Savartsov <asavartsov@gmail.com>
  Licensed under the MIT license
 -->
+<!DOCTYPE html>
+<html>
 <head>
+    <meta charset="utf-8">
     <link rel="stylesheet" type="text/css" href="../css/popup.css">
-
     <script src="../js/jquery-1.7.min.js"></script>
     <script src="../js/md5.js"></script>
     <script src="../js/lastfm.js"></script>
@@ -15,57 +17,78 @@
 </head>
 <body>
     <div id="alert" class="hidden">
-        Keyboard shortcuts are now available. To edit them, go to
-        <a id="extns_link" href="#">chrome://extensions</a> and click
-        "Keyboard shortcuts" at the bottom right of the page.
-        (<a id="dismiss_alert" href="#">dismiss</a>)
+        <div class="alert-content">
+            <span class="alert-text">
+                Keyboard shortcuts are now available. To edit them, go to
+                <a id="extns_link" href="#">chrome://extensions</a> and click
+                "Keyboard shortcuts" at the bottom right of the page.
+            </span>
+            <a id="dismiss_alert" href="#" class="dismiss-btn">×</a>
+        </div>
     </div>
+    
     <div id="content">
         <div id="main">
             <div id="cover-box">
-                <img id="cover"/>
+                <img id="cover" alt="Album cover"/>
             </div>
             <div id="song">
-                <span id="now-playing">
-                    <span id="artist"></span>&nbsp;-&nbsp;
+                <div id="now-playing">
+                    <span id="artist"></span>
+                    <span class="separator">–</span>
                     <span id="track"></span>
-                </span>
+                </div>
                 <div id="album"></div>
                 <div id="controls">
-                    <span id="lastfm-buttons">
+                    <div id="lastfm-buttons">
                         <span id="love-button"></span>
-                        &nbsp;&nbsp;&nbsp;
-                    </span>
-                    <span id="player-controls">
-                        <a id="prev-btn" href="#"></a>
-                        &nbsp;&nbsp;&nbsp;
-                        <a id="play-pause-btn" href="#"></a>
-                        &nbsp;&nbsp;&nbsp;
-                        <a id="next-btn" href="#"></a>
-                    </span>
+                    </div>
+                    <div id="player-controls">
+                        <a id="prev-btn" href="#" title="Previous"></a>
+                        <a id="play-pause-btn" href="#" title="Play/Pause"></a>
+                        <a id="next-btn" href="#" title="Next"></a>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="clear"></div>
+        
         <div id="bottom">
-            <div id="scrobbling"></div>
-            <div id="lastfm-profile"></div>
-            <div id="sync-history">
-                <div id="sync-date-controls" style="margin-bottom: 10px;">
-                    <label style="font-size: 12px; color: #666;">Sync from:</label>
-                    <div style="margin-top: 5px;">
-                        <input type="radio" id="sync-from-now" name="sync-date" value="now" checked>
-                        <label for="sync-from-now" style="font-size: 12px;">Now (default)</label>
-                    </div>
-                    <div style="margin-top: 3px;">
-                        <input type="radio" id="sync-from-date" name="sync-date" value="custom">
-                        <label for="sync-from-date" style="font-size: 12px;">Custom date:</label>
-                        <input type="date" id="custom-sync-date" style="margin-left: 5px; font-size: 11px;" disabled>
-                    </div>
+            <div class="status-row">
+                <div id="scrobbling"></div>
+                <div id="lastfm-profile"></div>
+            </div>
+            
+            <div class="sync-section">
+                <div class="sync-header">
+                    <h3>Sync History</h3>
+                    <a id="options-link" href="#" title="Open Options" class="options-btn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                        </svg>
+                    </a>
                 </div>
-                <button id="sync-history-btn">Sync History</button>
-                <div id="sync-status" style="display: none; font-size: 12px; color: #666; margin-top: 5px;"></div>
+                
+                <div id="sync-history">
+                    <div id="sync-date-controls">
+                        <label class="sync-label">Sync from:</label>
+                        <div class="radio-group">
+                            <div class="radio-option">
+                                <input type="radio" id="sync-from-now" name="sync-date" value="now" checked>
+                                <label for="sync-from-now">Since last sync</label>
+                            </div>
+                            <div class="radio-option">
+                                <input type="radio" id="sync-from-date" name="sync-date" value="custom">
+                                <label for="sync-from-date">Custom date:</label>
+                                <input type="date" id="custom-sync-date" class="date-input" disabled>
+                            </div>
+                        </div>
+                    </div>
+                    <button id="sync-history-btn" class="sync-btn">Sync History</button>
+                    <div id="sync-status" class="sync-status hidden"></div>
+                </div>
             </div>
         </div>
     </div>
 </body>
+</html>

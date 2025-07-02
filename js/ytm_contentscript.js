@@ -140,12 +140,42 @@ YtMusicParser.prototype._get_song_album = function() {
     return $("span.subtitle.style-scope.ytmusic-player-bar>yt-formatted-string>a").last().text();
 };
 
-var port = chrome.runtime.connect();
+var port;
 
-window.setInterval(function() {
-    port.postMessage(new Player(new YtMusicParser()));
-},
-SETTINGS.refresh_interval * 1000);
+function connectToBackground() {
+    try {
+        port = chrome.runtime.connect();
+        
+        port.onDisconnect.addListener(function() {
+            if (chrome.runtime.lastError) {
+                console.log('Port disconnected:', chrome.runtime.lastError.message);
+            }
+            // Reconnect after a short delay
+            setTimeout(connectToBackground, 1000);
+        });
+    } catch (error) {
+        console.log('Failed to connect to background, retrying...', error);
+        setTimeout(connectToBackground, 1000);
+    }
+}
+
+function sendPlayerUpdate() {
+    try {
+        if (port) {
+            port.postMessage(new Player(new YtMusicParser()));
+        }
+    } catch (error) {
+        console.log('Error sending player update:', error);
+        // Try to reconnect
+        connectToBackground();
+    }
+}
+
+// Initial connection
+connectToBackground();
+
+// Send player updates at regular intervals
+window.setInterval(sendPlayerUpdate, SETTINGS.refresh_interval * 1000);
 
 /*
 * Listeners for player control buttons
