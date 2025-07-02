@@ -15,7 +15,7 @@
       "https://music.youtube.com/"
    ],
    "background": {
-     "service_worker": "js/service-worker.js"
+     "service_worker": "dist/js/service-worker.js"
    },
    "icons" : {
       "128" : "img/icon128.png",
@@ -36,9 +36,9 @@
             "*://play.google.com/music/listen*"
          ],
          "js" : [
-            "js/inject.js",
-            "js/settings.js",
-            "js/contentscript.js"
+            "dist/js/inject.js",
+            "dist/js/settings.js",
+            "dist/js/contentscript.js"
          ]
       },
       {
@@ -46,9 +46,9 @@
             "*://music.youtube.com/*"
          ],
          "js" : [
-            "js/inject.js",
-            "js/settings.js",
-            "js/ytm_contentscript.js"
+            "dist/js/inject.js",
+            "dist/js/settings.js",
+            "dist/js/ytm_contentscript.js"
          ]
       },
       {
@@ -56,17 +56,7 @@
             "*://music.youtube.com/history*"
          ],
          "js" : [
-            "js/history_parser.js"
-         ]
-      },
-      {
-         "run_at" : "document_start",
-         "matches" : [
-            "*://play.google.com/music/listen*",
-            "*://music.youtube.com/*"
-         ],
-         "js" : [
-            "js/jquery-1.7.min.js"
+            "dist/js/history_parser.js"
          ]
       }
    ],

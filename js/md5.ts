@@ -11,27 +11,27 @@
  * Configurable variables. You may need to tweak these to be compatible with
  * the server-side, but the defaults work in most cases.
  */
-var hexcase = 0;   /* hex output format. 0 - lowercase; 1 - uppercase        */
-var b64pad  = "";  /* base-64 pad character. "=" for strict RFC compliance   */
+var hexcase: number = 0;   /* hex output format. 0 - lowercase; 1 - uppercase        */
+var b64pad: string  = "";  /* base-64 pad character. "=" for strict RFC compliance   */
 
 /*
  * These are the functions you'll usually want to call
  * They take string arguments and return either hex or base-64 encoded strings
  */
-function hex_md5(s)    { return rstr2hex(rstr_md5(str2rstr_utf8(s))); }
-function b64_md5(s)    { return rstr2b64(rstr_md5(str2rstr_utf8(s))); }
-function any_md5(s, e) { return rstr2any(rstr_md5(str2rstr_utf8(s)), e); }
-function hex_hmac_md5(k, d)
+function hex_md5(s: string): string    { return rstr2hex(rstr_md5(str2rstr_utf8(s))); }
+function b64_md5(s: string): string    { return rstr2b64(rstr_md5(str2rstr_utf8(s))); }
+function any_md5(s: string, e: string): string { return rstr2any(rstr_md5(str2rstr_utf8(s)), e); }
+function hex_hmac_md5(k: string, d: string): string
   { return rstr2hex(rstr_hmac_md5(str2rstr_utf8(k), str2rstr_utf8(d))); }
-function b64_hmac_md5(k, d)
+function b64_hmac_md5(k: string, d: string): string
   { return rstr2b64(rstr_hmac_md5(str2rstr_utf8(k), str2rstr_utf8(d))); }
-function any_hmac_md5(k, d, e)
+function any_hmac_md5(k: string, d: string, e: string): string
   { return rstr2any(rstr_hmac_md5(str2rstr_utf8(k), str2rstr_utf8(d)), e); }
 
 /*
  * Perform a simple self-test to see if the VM is working
  */
-function md5_vm_test()
+function md5_vm_test(): boolean
 {
   return hex_md5("abc").toLowerCase() == "900150983cd24fb0d6963f7d28e17f72";
 }
@@ -39,7 +39,7 @@ function md5_vm_test()
 /*
  * Calculate the MD5 of a raw string
  */
-function rstr_md5(s)
+function rstr_md5(s: string): string
 {
   return binl2rstr(binl_md5(rstr2binl(s), s.length * 8));
 }
@@ -47,7 +47,7 @@ function rstr_md5(s)
 /*
  * Calculate the HMAC-MD5, of a key and some data (raw strings)
  */
-function rstr_hmac_md5(key, data)
+function rstr_hmac_md5(key: string, data: string): string
 {
   var bkey = rstr2binl(key);
   if(bkey.length > 16) bkey = binl_md5(bkey, key.length * 8);

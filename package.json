@@ -3,7 +3,8 @@
   "version" : "02.07.2025",
   "description": "YouTube Music Last.fm scrobbler Chrome extension",
   "scripts": {
-    "test": "jest"
+    "test": "jest",
+    "build": "tsc"
   },
   "devDependencies": {
     "jest": "^29.7.0"
