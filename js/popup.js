@@ -4,23 +4,43 @@
  * Copyright (c) 2011 Alexey Savartsov <asavartsov@gmail.com>
  * Licensed under the MIT license
  */
-/* Background page */
-var bp;
+
+/* Global state */
+var currentPlayer = null;
+var currentSession = null;
+var currentSettings = null;
 
 /* Render popup when DOM is ready */
 $(document).ready(function() {
-    chrome.runtime.getBackgroundPage(function(backgroundPage) {
-        bp = backgroundPage;
-        if (localStorage.getItem("seen_alert") === null) {
-            show_alert();
-        }
+    // Initialize popup by getting current state from service worker
+    initializePopup();
+});
+
+function initializePopup() {
+    // Get initial state from service worker
+    Promise.all([
+        sendMessageToServiceWorker({cmd: 'getPlayer'}),
+        sendMessageToServiceWorker({cmd: 'getSession'}),
+        sendMessageToServiceWorker({cmd: 'getSettings'})
+    ]).then(([player, session, settings]) => {
+        currentPlayer = player;
+        currentSession = session;
+        currentSettings = settings;
+        
+        chrome.storage.local.get("seen_alert", (result) => {
+            if (result.seen_alert === undefined) {
+                show_alert();
+            }
+        });
+        
         set_play_link();
         render_song();
-        if (bp.lastfm_api.session.name && bp.lastfm_api.session.key) {
+        if (currentSession.name && currentSession.key) {
             render_scrobble_link();
         }
         render_auth_link();
         $("#sync-history-btn").click(on_sync_history);
+        $("#options-link").click(on_options);
         
         // Handle date selection radio buttons
         $("input[name='sync-date']").change(function() {
@@ -33,8 +53,23 @@ $(document).ready(function() {
         
         // Show last sync info if available
         render_sync_info();
+    }).catch(error => {
+        console.error('Failed to initialize popup:', error);
     });
-});
+}
+
+// Helper function to send messages to service worker
+function sendMessageToServiceWorker(message) {
+    return new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage(message, (response) => {
+            if (chrome.runtime.lastError) {
+                reject(chrome.runtime.lastError);
+            } else {
+                resolve(response);
+            }
+        });
+    });
+}
 
 function set_play_link() {
     $("#cover").click(open_play_tab);
@@ -48,7 +83,7 @@ function update_song_info(player) {
         alt:player.song.album});
     $("#album").text(player.song.album);
 
-    if (bp.lastfm_api.session.name && bp.lastfm_api.session.key) {
+    if (currentSession.name && currentSession.key) {
         render_love_button(player);
     }
     toggle_play_btn(player);
@@ -69,12 +104,12 @@ function toggle_play_btn(player) {
  * Renders current song details
  */
 function render_song() {
-    if (bp.player.has_song) {
-        update_song_info(bp.player);
+    if (currentPlayer && currentPlayer.has_song) {
+        update_song_info(currentPlayer);
         $("#play-pause-btn").click(toggle_play);
         $("#next-btn").click(next_song);
         $("#prev-btn").click(prev_song);
-        if (!(bp.lastfm_api.session.name && bp.lastfm_api.session.key)) {
+        if (!(currentSession.name && currentSession.key)) {
             $("#lastfm-buttons").hide();
         }
     } else {
@@ -95,22 +130,22 @@ function render_scrobble_link() {
     $("#scrobbling a")
     .attr("href", "#")
     .click(on_toggle_scrobble)
-    .text(bp.SETTINGS.scrobble ? "Stop scrobbling" : "Resume scrobbling");
+    .text(currentSettings.scrobble ? "Stop scrobbling" : "Resume scrobbling");
 }
 
 /**
  * Renders authentication/profile link
  */
 function render_auth_link() {
-    if (bp.lastfm_api.session.name && bp.lastfm_api.session.key) {
+    if (currentSession.name && currentSession.key) {
         render_scrobble_link();
         $("#lastfm-profile").html("Logged in as " + "<a></a><a></a>");
         $("#lastfm-profile a:first")
         .attr({
-            href: "http://last.fm/user/" + bp.lastfm_api.session.name,
+            href: "http://last.fm/user/" + currentSession.name,
             target: "_blank"
         })
-        .text(bp.lastfm_api.session.name);
+        .text(currentSession.name);
 
         $("#lastfm-profile a:last")
         .attr({
@@ -133,27 +168,30 @@ function render_auth_link() {
 function render_love_button(player) {
     $("#love-button").html('<img src="../img/ajax-loader.gif">');
 
-    bp.lastfm_api.is_track_loved(player.song.title,
-            player.song.artist,
-            function(result) {
-                $("#love-button").html('<a href="#"></a>');
-                if (result) {
-                    $("#love-button a").attr({ title: "Unlove this song"})
-                    .click(function() {on_unlove(player);})
-                    .addClass("loved");
-
-                } else {
-                    $("#love-button a").attr({ title: "Love this song" })
-                    .click(function() {on_love(player);})
-                    .addClass("notloved");
-                }
-            });
+    sendMessageToServiceWorker({
+        cmd: 'isTrackLoved',
+        title: player.song.title,
+        artist: player.song.artist
+    }).then(result => {
+        $("#love-button").html('<a href="#"></a>');
+        if (result) {
+            $("#love-button a").attr({ title: "Unlove this song"})
+            .click(function() {on_unlove(player);})
+            .addClass("loved");
+        } else {
+            $("#love-button a").attr({ title: "Love this song" })
+            .click(function() {on_love(player);})
+            .addClass("notloved");
+        }
+    }).catch(error => {
+        console.error('Error checking if track is loved:', error);
+    });
 }
 
 /* Event handlers */
 
 function toggle_play() {
-    var has_song = bp.player.has_song;
+    var has_song = currentPlayer && currentPlayer.has_song;
     find_play_tab(
         function(tab) {
             chrome.tabs.sendMessage(tab.id, {cmd: "tgl"},
@@ -202,15 +240,26 @@ function next_song() {
  * Turn on/off scrobbling link was clicked
  */
 function on_toggle_scrobble() {
-    bp.toggle_scrobble();
-    render_scrobble_link();
+    sendMessageToServiceWorker({cmd: 'toggleScrobble'}).then(() => {
+        // Update current settings
+        currentSettings.scrobble = !currentSettings.scrobble;
+        render_scrobble_link();
+    });
 }
 
 /**
  * Authentication link was clicked
  */
 function on_auth() {
-    bp.start_web_auth();
+    sendMessageToServiceWorker({cmd: 'startWebAuth'});
+    window.close();
+}
+
+/**
+ * Options link was clicked
+ */
+function on_options() {
+    chrome.tabs.create({url: chrome.runtime.getURL('html/options.html')});
     window.close();
 }
 
@@ -218,30 +267,38 @@ function on_auth() {
  * Logout link was clicked
  */
 function on_logout() {
-    bp.clear_session();
-    render_auth_link();
+    sendMessageToServiceWorker({cmd: 'clearSession'}).then(() => {
+        currentSession = {name: null, key: null};
+        render_auth_link();
+    });
 }
 
 /**
  * Love button was clicked
  */
 function on_love(player) {
-    bp.lastfm_api.love_track(player.song.title, player.song.artist,
-        function(result) {
-            if (!result.error) {
-                render_love_button(player);
-            }
-            else {
-                if (result.error == 9) {
-                    // Session expired
-                    bp.clear_session();
+    sendMessageToServiceWorker({
+        cmd: 'loveTrack',
+        title: player.song.title,
+        artist: player.song.artist
+    }).then(result => {
+        if (!result.error) {
+            render_love_button(player);
+        } else {
+            if (result.error == 9) {
+                // Session expired
+                sendMessageToServiceWorker({cmd: 'clearSession'}).then(() => {
+                    currentSession = {name: null, key: null};
                     render_auth_link();
-                }
-
-                chrome.browserAction.setIcon({
-                     'path': SETTINGS.error_icon });
+                });
             }
-        });
+            chrome.action.setIcon({
+                'path': currentSettings.error_icon 
+            });
+        }
+    }).catch(error => {
+        console.error('Error loving track:', error);
+    });
 
     $("#love-button").html('<img src="../img/ajax-loader.gif">');
 }
@@ -250,21 +307,28 @@ function on_love(player) {
  * Unlove button was clicked
  */
 function on_unlove(player) {
-    bp.lastfm_api.unlove_track(player.song.title, player.song.artist,
-        function(result) {
-            if (!result.error) {
-                render_love_button(player);
-            } else {
-                if (result.error == 9) {
-                    // Session expired
-                    bp.clear_session();
+    sendMessageToServiceWorker({
+        cmd: 'unloveTrack',
+        title: player.song.title,
+        artist: player.song.artist
+    }).then(result => {
+        if (!result.error) {
+            render_love_button(player);
+        } else {
+            if (result.error == 9) {
+                // Session expired
+                sendMessageToServiceWorker({cmd: 'clearSession'}).then(() => {
+                    currentSession = {name: null, key: null};
                     render_auth_link();
-                }
-
-                chrome.browserAction.setIcon({
-                     'path': SETTINGS.error_icon });
+                });
             }
-        });
+            chrome.action.setIcon({
+                'path': currentSettings.error_icon 
+            });
+        }
+    }).catch(error => {
+        console.error('Error unloving track:', error);
+    });
 
     $("#love-button").html('<img src="../img/ajax-loader.gif">');
 }
@@ -275,11 +339,11 @@ function on_unlove(player) {
 function show_alert() {
     $("#alert").removeClass("hidden");
     $("#extns_link").click(function() {
-        bp.open_extensions_page();
+        sendMessageToServiceWorker({cmd: 'openExtensionsPage'});
     });
     $("#dismiss_alert").click(function() {
         $("#alert").addClass("hidden");
-        localStorage.setItem("seen_alert", "1");
+        chrome.storage.local.set({"seen_alert": "1"});
     });
 }
 
@@ -287,18 +351,20 @@ function show_alert() {
  * Render sync information
  */
 function render_sync_info() {
-    var lastSync = localStorage.getItem('last_history_sync');
-    if (lastSync) {
-        var lastSyncDate = new Date(parseInt(lastSync));
-        var dateStr = lastSyncDate.toLocaleDateString() + ' ' + lastSyncDate.toLocaleTimeString();
-        $("#sync-status").html('Last sync: ' + dateStr).show();
-        
-        // Update radio button text to show "Since last sync"
-        $("label[for='sync-from-now']").text('Since last sync (' + lastSyncDate.toLocaleDateString() + ')');
-    } else {
-        // First time sync
-        $("label[for='sync-from-now']").text('Now (first sync)');
-    }
+    chrome.storage.local.get('last_history_sync', (result) => {
+        var lastSync = result.last_history_sync;
+        if (lastSync) {
+            var lastSyncDate = new Date(parseInt(lastSync));
+            var dateStr = lastSyncDate.toLocaleDateString() + ' ' + lastSyncDate.toLocaleTimeString();
+            $("#sync-status").html('Last sync: ' + dateStr).removeClass('hidden').removeClass('error info').addClass('success');
+            
+            // Update radio button text to show "Since last sync"
+            $("label[for='sync-from-now']").text('Since last sync (' + lastSyncDate.toLocaleDateString() + ')');
+        } else {
+            // First time sync
+            $("label[for='sync-from-now']").text('Since last sync (never)');
+        }
+    });
 }
 
 /**
@@ -318,16 +384,23 @@ function on_sync_history() {
         syncFromDate = new Date(customDate).getTime();
     } else {
         // Use last sync time or current time for first sync
-        var lastSync = localStorage.getItem('last_history_sync');
+        chrome.storage.local.get('last_history_sync', (result) => {
+            var lastSync = result.last_history_sync;
         syncFromDate = lastSync ? parseInt(lastSync) : Date.now();
+            performHistorySync(syncFromDate);
+        });
+        return; // Exit early to handle async storage
     }
-    
+    performHistorySync(syncFromDate);
+}
+
+function performHistorySync(syncFromDate) {
     // Disable button to prevent multiple clicks
     $("#sync-history-btn").prop('disabled', true).text('Syncing...');
-    $("#sync-status").html('Preparing sync...').show();
+    $("#sync-status").html('Preparing sync...').removeClass('hidden').removeClass('success error').addClass('info');
     
     // Tell background script to start history sync with date
-    bp.start_history_sync(syncFromDate);
+    sendMessageToServiceWorker({cmd: 'startHistorySync', syncFromDate: syncFromDate});
     
     // Create/navigate to history tab
     chrome.tabs.create({url: 'https://music.youtube.com/history'});

@@ -25,19 +25,22 @@ var SETTINGS = {
     }
 };
 
-SETTINGS.max_scrobbles = localStorage.getItem('max_scrobbles') &&
-                            parseInt(localStorage.getItem('max_scrobbles')) ||
-                            SETTINGS.max_scrobbles;
-
-SETTINGS.logs_enabled = localStorage.getItem('logs_enabled') &&
-                            localStorage.getItem('logs_enabled') == 'true';
+// Load settings from chrome.storage.local asynchronously
+chrome.storage.local.get([
+  'max_scrobbles',
+  'logs_enabled', 
+  'history_sync_interval',
+  'scrobble'
+], (result) => {
+  SETTINGS.max_scrobbles = result.max_scrobbles ? parseInt(result.max_scrobbles) : SETTINGS.max_scrobbles;
+  SETTINGS.logs_enabled = result.logs_enabled === 'true';
 
 // Load user-defined history sync interval.
 // If a value (including "0") is stored, use it; otherwise keep the default.
-var _storedInterval = localStorage.getItem('history_sync_interval');
-if (_storedInterval !== null) {
-    SETTINGS.history_sync_interval = parseInt(_storedInterval);
+  if (result.history_sync_interval !== undefined) {
+    SETTINGS.history_sync_interval = parseInt(result.history_sync_interval);
 }
 
 // This enables scrobbling by default
-SETTINGS.scrobble = localStorage.getItem("scrobble") != "false";
+  SETTINGS.scrobble = result.scrobble !== "false";
+});

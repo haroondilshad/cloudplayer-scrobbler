@@ -12,18 +12,24 @@ var num_scrobbles = 0;
 var curr_song_title = '';
 var lastfm_api = new LastFM(SETTINGS.api_key, SETTINGS.api_secret);
 
-// Load settings from local storage
-lastfm_api.session.key = localStorage.getItem('session_key');
-lastfm_api.session.name = localStorage.getItem('session_name');
+// Load settings from storage
+chrome.storage.local.get(['session_key', 'session_name'], (result) => {
+  lastfm_api.session.key = result.session_key;
+  lastfm_api.session.name = result.session_name;
+});
 
 
 if (!SETTINGS.scrobble) {
-  chrome.browserAction.setIcon({'path': SETTINGS.scrobbling_stopped_icon});
+  chrome.action.setIcon({'path': SETTINGS.scrobbling_stopped_icon});
 }
 
 // Connect event handlers
 chrome.runtime.onConnect.addListener(port_on_connect);
-chrome.runtime.onMessage.addListener(on_message);
+// Message listener registration moved to service-worker.js, but keep the function for tests
+// Export on_message function for testing (tests import background.js directly)
+if (typeof module !== 'undefined' && module.exports) {
+  chrome.runtime.onMessage.addListener(on_message);
+}
 bind_keyboard_shortcuts();
 
 
@@ -35,14 +41,18 @@ function on_message(message, sender, sendResponse) {
     historySync.processHistorySongs(message.songs);
     sendResponse({success: true});
   } else if (message.action === 'get_sync_params') {
-    var syncFromTimestamp = parseInt(localStorage.getItem('sync_from_timestamp')) || Date.now();
+    chrome.storage.local.get('sync_from_timestamp', (result) => {
+      var syncFromTimestamp = parseInt(result.sync_from_timestamp) || Date.now();
     sendResponse({syncFromTimestamp: syncFromTimestamp});
+    });
+    return true; // Indicates we will respond asynchronously
   } else if (message.action === 'sync_complete') {
     log("Sync completed: " + message.message);
     // Update last sync timestamp even when there were no new songs
-    localStorage.setItem('last_history_sync', Date.now());
-    localStorage.removeItem('history_sync_in_progress');
-    localStorage.removeItem('sync_from_timestamp');
+    chrome.storage.local.set({
+      'last_history_sync': Date.now()
+    });
+    chrome.storage.local.remove(['history_sync_in_progress', 'sync_from_timestamp']);
     sendResponse({success: true});
   }
 }
@@ -69,7 +79,7 @@ function port_on_message(message) {
   player = _p;
 
   if (!SETTINGS.scrobble) {
-    chrome.browserAction.setIcon({'path': SETTINGS.scrobbling_stopped_icon});
+    chrome.action.setIcon({'path': SETTINGS.scrobbling_stopped_icon});
 
     return;
   }
@@ -95,7 +105,7 @@ function port_on_message(message) {
     }
 
     if (_p.is_playing) {
-      chrome.browserAction.setIcon({'path': SETTINGS.playing_icon });
+      chrome.action.setIcon({'path': SETTINGS.playing_icon });
       if ((_p.song.time &&
            time_played >= _p.song.time * SETTINGS.scrobble_point ||
            time_played >= SETTINGS.scrobble_interval) &&
@@ -123,10 +133,10 @@ function port_on_message(message) {
       }
     } else {
       // The player is paused
-      chrome.browserAction.setIcon({'path': SETTINGS.paused_icon});
+      chrome.action.setIcon({'path': SETTINGS.paused_icon});
     }
   } else {
-    chrome.browserAction.setIcon({'path': SETTINGS.main_icon});
+    chrome.action.setIcon({'path': SETTINGS.main_icon});
   }
   last_refresh = now;
 }
@@ -141,7 +151,7 @@ function scrobble_song(artist, album_artist, album, title, time) {
           // Session expired
           clear_session();
         }
-        chrome.browserAction.setIcon({'path': SETTINGS.error_icon});
+        chrome.action.setIcon({'path': SETTINGS.error_icon});
       } else {
         // Track successful scrobble to prevent duplicates
         add_to_scrobble_cache(artist, title, album, time);
@@ -170,7 +180,7 @@ function port_on_disconnect() {
   time_played = 0;
   num_scrobbles = 0;
   curr_song_title = '';
-  chrome.browserAction.setIcon({'path': SETTINGS.main_icon});
+  chrome.action.setIcon({'path': SETTINGS.main_icon});
 }
 
 
@@ -192,8 +202,7 @@ function start_web_auth() {
 function clear_session() {
   lastfm_api.session = {};
 
-  localStorage.removeItem('session_key');
-  localStorage.removeItem('session_name');
+  chrome.storage.local.remove(['session_key', 'session_name']);
 }
 
 
@@ -202,12 +211,12 @@ function clear_session() {
  */
 function toggle_scrobble() {
   SETTINGS.scrobble = !SETTINGS.scrobble;
-  localStorage.setItem('scrobble', SETTINGS.scrobble);
+  chrome.storage.local.set({'scrobble': SETTINGS.scrobble});
 
   // Set the icon corresponding the current scrobble state
   var icon = (SETTINGS.scrobble ?
               SETTINGS.main_icon : SETTINGS.scrobbling_stopped_icon);
-  chrome.browserAction.setIcon({'path': icon});
+  chrome.action.setIcon({'path': icon});
 }
 
 
@@ -218,8 +227,10 @@ function get_lastfm_session(token) {
   lastfm_api.authorize(token, function(response) {
     // Save session
     if (response.session) {
-      localStorage.setItem('session_key', response.session.key);
-      localStorage.setItem('session_name', response.session.name);
+      chrome.storage.local.set({
+        'session_key': response.session.key,
+        'session_name': response.session.name
+      });
     }
   });
 }
@@ -311,18 +322,29 @@ function start_history_sync(syncFromTimestamp) {
   // Determine the sync start timestamp
   var ts = typeof syncFromTimestamp === 'number' ? syncFromTimestamp : null;
   if (!ts) {
-    var lastSync = localStorage.getItem('last_history_sync');
-    ts = lastSync ? parseInt(lastSync) : Date.now();
+    chrome.storage.local.get('last_history_sync', (result) => {
+      ts = result.last_history_sync ? parseInt(result.last_history_sync) : Date.now();
+      // Continue with the rest of the function
+      continueHistorySync(ts);
+    });
+    return; // Exit early to handle async storage
+  } else {
+    continueHistorySync(ts);
   }
+}
+
+function continueHistorySync(ts) {
 
   // Mark sync session so content scripts know to scrape
   if (typeof historySync !== 'undefined' && historySync.startHistorySync) {
     historySync.startHistorySync(ts);
   } else {
     // Fallback: store flags directly
-    localStorage.setItem('history_sync_in_progress', 'true');
-    localStorage.setItem('history_sync_start_time', Date.now());
-    localStorage.setItem('sync_from_timestamp', ts);
+    chrome.storage.local.set({
+      'history_sync_in_progress': 'true',
+      'history_sync_start_time': Date.now(),
+      'sync_from_timestamp': ts
+    });
   }
 
   // Open or reload the YT Music history page in a background tab

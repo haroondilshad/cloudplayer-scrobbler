@@ -1,19 +1,15 @@
-// Saves options to localStorage.
+// Saves options to chrome.storage.local.
 function save_options() {
     var scrobble_mult = document.getElementById('scrobble_mult').checked;
+    var storageData = {};
+    
     if (!scrobble_mult) {
-        // TODO localStorage actually stores this as a string. Find out
-        // if this causes bugs.
-        localStorage.setItem('max_scrobbles', 1);
-    } else {
-        localStorage.removeItem('max_scrobbles');
+        storageData['max_scrobbles'] = '1';
     }
 
     var logs_enabled = document.getElementById('log_checkbox').checked;
     if (logs_enabled) {
-        localStorage.setItem('logs_enabled', 'true');
-    } else {
-        localStorage.removeItem('logs_enabled');
+        storageData['logs_enabled'] = 'true';
     }
 
     // Save history sync interval based on selected option
@@ -30,10 +26,26 @@ function save_options() {
 
     // Always store the selected interval (including 0) so the background script
     // can distinguish between an explicit "disabled" and the default.
-    localStorage.setItem('history_sync_interval', intervalVal);
+    storageData['history_sync_interval'] = intervalVal.toString();
+    
+    // Save all settings to chrome.storage.local
+    chrome.storage.local.set(storageData, () => {
+        // Remove settings that shouldn't be stored (when options are disabled)
+        var keysToRemove = [];
+        if (scrobble_mult) {
+            keysToRemove.push('max_scrobbles');
+        }
+        if (!logs_enabled) {
+            keysToRemove.push('logs_enabled');
+        }
+        
+        if (keysToRemove.length > 0) {
+            chrome.storage.local.remove(keysToRemove);
+        }
+    });
 
-    chrome.runtime.getBackgroundPage(function(backgroundPage) {
-        backgroundPage.location.reload();
+    // Tell service worker to reload settings
+    chrome.runtime.sendMessage({cmd: 'reloadSettings'}, function() {
         // Update status to let user know options were saved.
         var status = document.getElementById('status');
         status.innerHTML = 'Options saved, please reload the Google Play page.';

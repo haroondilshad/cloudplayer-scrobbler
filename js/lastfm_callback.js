@@ -9,8 +9,10 @@ function _url_param(name, url) {
         '(.+?)(&|$)').exec(url) || [,null])[1]);
 }
 
-chrome.runtime.getBackgroundPage(function(background) {
-    background.get_lastfm_session(_url_param("token", location.search));
+chrome.runtime.sendMessage({
+    cmd: 'getLastfmSession',
+    token: _url_param("token", location.search)
+}, function() {
     open_play_tab();
     setTimeout(function() {
         window.close();

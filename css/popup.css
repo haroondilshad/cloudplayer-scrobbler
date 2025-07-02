@@ -1,107 +1,357 @@
 /**
  * popup.css
- * Style sheet for popup page
+ * Modern style sheet for popup page
  * Copyright (c) 2011 Alexey Savartsov <asavartsov@gmail.com>
  * Licensed under the MIT license
  */
 
+* {
+    box-sizing: border-box;
+}
+
 body {
-    padding: 10px;
+    padding: 0;
     margin: 0;
-    min-width: 300px;
-
-    font-family: "Helvetica", "Arial", sans-serif;
+    width: 350px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #333;
+    background: #ffffff;
 }
 
-span {
-    line-height: 100%;
+#content {
+    padding: 16px;
 }
 
-a {
-    color: grey;
+/* Alert Styles */
+#alert {
+    background: #e3f2fd;
+    border-left: 4px solid #2196f3;
+    padding: 12px;
+    margin-bottom: 16px;
+    border-radius: 4px;
+    font-size: 12px;
 }
 
-a:hover {
-    color: black;
+.alert-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.alert-text {
+    flex: 1;
+    line-height: 1.4;
+}
+
+.dismiss-btn {
+    color: #666;
+    text-decoration: none;
+    font-size: 18px;
+    font-weight: bold;
+    margin-left: 8px;
+    padding: 0 4px;
+    border-radius: 2px;
+    transition: background-color 0.2s;
+}
+
+.dismiss-btn:hover {
+    background-color: rgba(0, 0, 0, 0.1);
+    color: #333;
+}
+
+/* Main Content */
+#main {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 20px;
 }
 
 #cover-box {
-    float: left;
-    border-color: #FFC200;
-    border-width: 2px;
-    border-style: solid;
-    border-radius: 5px;
+    flex-shrink: 0;
+    border: 2px solid #ff9800;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 #cover {
-    border: none;
-    width: 60px;
-    height: 60px;
-    cursor: hand;
+    width: 64px;
+    height: 64px;
+    display: block;
     cursor: pointer;
+    transition: transform 0.2s;
+}
+
+#cover:hover {
+    transform: scale(1.02);
+}
+
+#song {
+    flex: 1;
+    min-width: 0;
 }
 
 #song.nosong {
-    color: grey;
+    color: #999;
 }
 
 #song.nosong a {
     font-size: 12px;
 }
 
-#song {
-    margin-left: 75px;
+#now-playing {
+    font-size: 15px;
+    font-weight: 500;
+    margin-bottom: 8px;
+    line-height: 1.3;
+    word-wrap: break-word;
 }
 
 #artist {
-    font-weight: bold;
+    font-weight: 600;
+    color: #1976d2;
 }
 
-#album {
-    min-height: 25px;
-    font-style: italic;
+.separator {
     color: #999;
-    font-size: 80%;
+    margin: 0 6px;
 }
 
 #track {
-    margin-top: 6px;
-    font-size: 14px;
+    color: #333;
 }
 
-#bottom {
-    margin-top: 10px;
-    font-size: 11px;
+#album {
+    font-style: italic;
+    color: #666;
+    font-size: 13px;
+    margin-bottom: 12px;
+    min-height: 16px;
+}
 
-    color: grey;
+#controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+#lastfm-buttons {
+    display: flex;
+    align-items: center;
+}
+
+#player-controls {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+/* Bottom Section */
+#bottom {
+    border-top: 1px solid #e0e0e0;
+    padding-top: 16px;
+}
+
+.status-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    font-size: 12px;
+    color: #666;
 }
 
 #scrobbling {
-    float: left;
+    font-weight: 500;
 }
 
 #lastfm-profile {
-    float: right;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Sync Section */
+.sync-section {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 16px;
+    border: 1px solid #e9ecef;
+}
+
+.sync-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.sync-header h3 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+}
+
+.options-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    background: #ffffff;
+    border: 1px solid #d1d5db;
+    color: #6b7280;
+    text-decoration: none;
+    transition: all 0.2s;
+    cursor: pointer;
+}
+
+.options-btn:hover {
+    background: #f3f4f6;
+    border-color: #9ca3af;
+    color: #374151;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.sync-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: #555;
+    margin-bottom: 8px;
+}
+
+.radio-group {
+    margin-bottom: 16px;
+}
+
+.radio-option {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+    gap: 8px;
+}
+
+.radio-option:last-child {
+    margin-bottom: 0;
+}
+
+.radio-option input[type="radio"] {
+    margin: 0;
+}
+
+.radio-option label {
+    font-size: 13px;
+    color: #555;
+    cursor: pointer;
+    margin: 0;
+}
+
+.date-input {
+    font-size: 12px;
+    padding: 4px 8px;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    margin-left: 8px;
+}
+
+.date-input:disabled {
+    background: #f3f4f6;
+    color: #9ca3af;
+}
+
+.sync-btn {
+    width: 100%;
+    padding: 10px 16px;
+    background: #1976d2;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.sync-btn:hover {
+    background: #1565c0;
+}
+
+.sync-btn:active {
+    background: #0d47a1;
+}
+
+.sync-status {
+    margin-top: 12px;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    text-align: center;
+}
+
+.sync-status.success {
+    background: #e8f5e8;
+    color: #2e7d32;
+    border: 1px solid #c8e6c9;
+}
+
+.sync-status.error {
+    background: #ffebee;
+    color: #c62828;
+    border: 1px solid #ffcdd2;
+}
+
+.sync-status.info {
+    background: #e3f2fd;
+    color: #1565c0;
+    border: 1px solid #bbdefb;
+}
+
+/* Button Styles */
+a {
+    color: #1976d2;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+a:hover {
+    color: #1565c0;
 }
 
 a.logout {
     display: inline-block;
-    width: 10px;
-    height: 10px;
+    width: 12px;
+    height: 12px;
     background: url('../img/logout.png') 0 0 no-repeat;
-    margin-left: 4px;
+    background-size: contain;
+    margin-left: 6px;
+    opacity: 0.7;
+    transition: opacity 0.2s;
 }
 
 a:hover.logout {
-    background-position: 0 -10px;
+    opacity: 1;
+    background-position: 0 -12px;
 }
 
 a.loved, a.notloved {
     display: inline-block;
-    width: 16px;
-    height: 16px;
+    width: 20px;
+    height: 20px;
     background-image: url('../img/love.png');
     background-repeat: no-repeat;
+    background-size: contain;
+    transition: transform 0.2s;
+}
+
+a.loved:hover, a.notloved:hover {
+    transform: scale(1.1);
 }
 
 a.loved {
@@ -109,15 +359,21 @@ a.loved {
 }
 
 a.notloved {
-    background-position: 0 -16px;
+    background-position: 0 -20px;
 }
 
 a.play, a.pause {
     display: inline-block;
-    width: 16px;
-    height: 18;
+    width: 20px;
+    height: 20px;
     background-image: url('../img/play_pause.png');
     background-repeat: no-repeat;
+    background-size: contain;
+    transition: transform 0.2s;
+}
+
+a.play:hover, a.pause:hover {
+    transform: scale(1.1);
 }
 
 a.play {
@@ -125,36 +381,45 @@ a.play {
 }
 
 a.pause {
-    background-position: 0 -19px;
+    background-position: 0 -20px;
+}
+
+#prev-btn, #next-btn {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    background-repeat: no-repeat;
+    background-size: contain;
+    transition: transform 0.2s;
+}
+
+#prev-btn:hover, #next-btn:hover {
+    transform: scale(1.1);
 }
 
 #prev-btn {
-    display: inline-block;
-    width: 25px;
-    height: 18px;
     background-image: url('../img/prev.png');
-    background-repeat: no-repeat;
 }
 
 #next-btn {
-    display: inline-block;
-    width: 25px;
-    height: 18px;
     background-image: url('../img/next.png');
-    background-repeat: no-repeat;
+}
+
+/* Utility Classes */
+.hidden {
+    display: none !important;
 }
 
 .clear {
     clear: both;
 }
 
-.hidden {
-    display: none;
+/* Link Styles */
+#alert a {
+    color: #1976d2;
+    text-decoration: underline;
 }
 
-#alert {
-    font-size: 12px;
-    border-bottom: 1px dotted #000;
-    padding-bottom: 10px;
-    margin-bottom: 10px;
+#alert a:hover {
+    color: #1565c0;
 }

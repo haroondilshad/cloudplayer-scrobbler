@@ -1,32 +1,74 @@
+<!DOCTYPE html>
 <html>
 <head>
-    <title>Google Play Last.fm Scrobbler Options</title>
+    <title>YouTube Music Last.fm Scrobbler - Options</title>
+    <link rel="stylesheet" type="text/css" href="../css/options.css">
 </head>
 <body>
-    <span style="font-weight:bold">Scrobbler Options:</span>
-    <br/><br/>
-    Scrobble long tracks multiple times (once every <span id="minute_field"></span>
-    minutes)?: <input id="scrobble_mult" type="checkbox"/><br/>
-    Enable logging (for debugging): <input id="log_checkbox" type="checkbox"/><br/>
-    History sync schedule:<br/>
-    <input type="radio" id="sync_interval_disabled" name="sync_interval" value="0">
-    <label for="sync_interval_disabled">Disabled (manual)</label><br/>
-    <input type="radio" id="sync_interval_60" name="sync_interval" value="60">
-    <label for="sync_interval_60">Every hour</label><br/>
-    <input type="radio" id="sync_interval_360" name="sync_interval" value="360">
-    <label for="sync_interval_360">Every 6 hours</label><br/>
-    <input type="radio" id="sync_interval_1440" name="sync_interval" value="1440">
-    <label for="sync_interval_1440">Every day</label><br/>
-    <input type="radio" id="sync_interval_custom" name="sync_interval" value="custom">
-    <label for="sync_interval_custom">Custom (minutes):</label>
-    <input id="history_sync_interval" type="number" min="1" step="1" style="width:60px;" disabled><br/>
-    <br/>
-    <div style="color:#066600" id="status"></div>
-    <button id="save">Save</button>
-    <br/><br/>
-    To edit keyboard shortcuts, go to chrome://extensions and click<br/>
-    keyboard shortcuts on the bottom right of the page.
+    <div class="container">
+        <h1>Scrobbler Options</h1>
+        
+        <div class="section">
+            <div class="section-title">Scrobbling Settings</div>
+            <div class="option-group">
+                <div class="checkbox-option">
+                    <input id="scrobble_mult" type="checkbox"/>
+                    <label for="scrobble_mult">Scrobble long tracks multiple times (once every <span id="minute_field" class="highlight"></span> minutes)</label>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">Debug Settings</div>
+            <div class="option-group">
+                <div class="checkbox-option">
+                    <input id="log_checkbox" type="checkbox"/>
+                    <label for="log_checkbox">Enable logging (for debugging)</label>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">History Sync Schedule</div>
+            <div class="radio-group">
+                <div class="radio-option">
+                    <input type="radio" id="sync_interval_disabled" name="sync_interval" value="0">
+                    <label for="sync_interval_disabled">Disabled (manual sync only)</label>
+                </div>
+                <div class="radio-option">
+                    <input type="radio" id="sync_interval_60" name="sync_interval" value="60">
+                    <label for="sync_interval_60">Every hour</label>
+                </div>
+                <div class="radio-option">
+                    <input type="radio" id="sync_interval_360" name="sync_interval" value="360">
+                    <label for="sync_interval_360">Every 6 hours</label>
+                </div>
+                <div class="radio-option">
+                    <input type="radio" id="sync_interval_1440" name="sync_interval" value="1440">
+                    <label for="sync_interval_1440">Every day</label>
+                </div>
+                <div class="radio-option">
+                    <input type="radio" id="sync_interval_custom" name="sync_interval" value="custom">
+                    <label for="sync_interval_custom">Custom interval:</label>
+                </div>
+                <div class="custom-input">
+                    <input id="history_sync_interval" type="number" min="1" step="1" placeholder="Minutes" disabled>
+                    <span style="color: #666; font-size: 13px;">minutes</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="save-section">
+            <div id="status"></div>
+            <button id="save">Save Options</button>
+        </div>
+
+        <div class="info-text">
+            <strong>Keyboard Shortcuts:</strong> To edit keyboard shortcuts, go to <code>chrome://extensions</code> and click "Keyboard shortcuts" at the bottom of the page.
+        </div>
+    </div>
+
+    <script src="../js/settings.js"></script>
+    <script src="../js/options.js"></script>
 </body>
-<script src="../js/settings.js"></script>
-<script src="../js/options.js"></script>
 </html>
