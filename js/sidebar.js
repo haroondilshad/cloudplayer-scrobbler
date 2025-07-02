@@ -105,12 +105,20 @@ function toggle_play_btn(player) {
  */
 function render_song() {
     if (currentPlayer && currentPlayer.has_song) {
+        $("#song").removeClass("nosong"); // Ensure .nosong class is removed
+        $("#player-controls").show();    // Explicitly show player controls
+        // $("#lastfm-buttons").show(); // This is handled below based on session
+
         update_song_info(currentPlayer);
-        $("#play-pause-btn").click(toggle_play);
-        $("#next-btn").click(next_song);
-        $("#prev-btn").click(prev_song);
+        // Use .off().on() to prevent multiple bindings if render_song is called repeatedly
+        $("#play-pause-btn").off('click').on('click', toggle_play);
+        $("#next-btn").off('click').on('click', next_song);
+        $("#prev-btn").off('click').on('click', prev_song);
+
         if (!(currentSession.name && currentSession.key)) {
             $("#lastfm-buttons").hide();
+        } else {
+            $("#lastfm-buttons").show(); // Ensure it's shown if logged in
         }
     } else {
         $("#song").addClass("nosong");

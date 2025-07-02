@@ -41,9 +41,14 @@ function on_message(message, sender, sendResponse) {
     historySync.processHistorySongs(message.songs);
     sendResponse({success: true});
   } else if (message.action === 'get_sync_params') {
-    chrome.storage.local.get('sync_from_timestamp', (result) => {
+    chrome.storage.local.get(['sync_from_timestamp', 'history_sync_in_progress'], (result) => {
       var syncFromTimestamp = parseInt(result.sync_from_timestamp) || Date.now();
-    sendResponse({syncFromTimestamp: syncFromTimestamp});
+      var historySyncInProgress = result.history_sync_in_progress === 'true';
+      // console.log('[background.js] get_sync_params: Responding with:', { syncFromTimestamp, historySyncInProgress }); // Log for live debugging if needed
+      sendResponse({
+        syncFromTimestamp: syncFromTimestamp,
+        historySyncInProgress: historySyncInProgress
+      });
     });
     return true; // Indicates we will respond asynchronously
   } else if (message.action === 'sync_complete') {
