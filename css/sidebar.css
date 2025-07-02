@@ -379,6 +379,7 @@ a.loved, a.notloved {
     background-repeat: no-repeat;
     background-size: contain;
     transition: transform 0.2s;
+    /* background-color: red !important; */ /* Diagnostic CSS Removed */
 }
 
 a.loved:hover, a.notloved:hover {
