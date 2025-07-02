@@ -1,0 +1,457 @@
+/**
+ * popup.css
+ * Modern style sheet for popup page
+ * Copyright (c) 2011 Alexey Savartsov <asavartsov@gmail.com>
+ * Licensed under the MIT license
+ */
+
+* {
+    box-sizing: border-box;
+}
+
+html, body {
+    height: 100%; /* Ensure html and body take full height */
+    margin: 0;
+    padding: 0;
+    overflow: hidden; /* Prevent body scrollbar, content will handle its own */
+}
+
+body {
+    width: 350px; /* Or adjust as needed for sidebar */
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #333;
+    background: #f9f9f9; /* Slightly off-white background for the body */
+    display: flex;
+    flex-direction: column;
+}
+
+#content {
+    padding: 16px;
+    flex-grow: 1; /* Allow content to grow */
+    overflow-y: auto; /* Make content area scrollable if it overflows */
+    background: #ffffff; /* White background for the main content area */
+}
+
+/* Alert Styles */
+#alert {
+    background: #e3f2fd;
+    border-left: 4px solid #2196f3;
+    padding: 12px;
+    margin-bottom: 16px;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+.alert-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.alert-text {
+    flex: 1;
+    line-height: 1.4;
+}
+
+.dismiss-btn {
+    color: #666;
+    text-decoration: none;
+    font-size: 18px;
+    font-weight: bold;
+    margin-left: 8px;
+    padding: 0 4px;
+    border-radius: 2px;
+    transition: background-color 0.2s;
+}
+
+.dismiss-btn:hover {
+    background-color: rgba(0, 0, 0, 0.1);
+    color: #333;
+}
+
+/* Main Content */
+#main {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 20px;
+    align-items: center; /* Vertically align items in the main section */
+}
+
+#cover-box {
+    flex-shrink: 0;
+    /* border: 1px solid #e0e0e0; */ /* Softer border */
+    border-radius: 6px; /* Slightly less rounded */
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0,0,0,0.1); /* Softer shadow */
+}
+
+#cover {
+    width: 60px; /* Slightly smaller cover */
+    height: 60px;
+    display: block;
+    cursor: pointer;
+    transition: transform 0.2s ease-out;
+}
+
+#cover:hover {
+    transform: scale(1.05); /* Slightly more pronounced hover effect */
+}
+
+#song {
+    flex: 1;
+    min-width: 0; /* Prevents overflow issues with flex items */
+}
+
+#song.nosong {
+    color: #999;
+}
+
+#song.nosong a {
+    font-size: 12px;
+}
+
+#now-playing {
+    font-size: 14px; /* Adjusted size */
+    font-weight: 500;
+    margin-bottom: 4px; /* Reduced margin */
+    line-height: 1.4; /* Adjusted line height */
+    word-wrap: break-word;
+}
+
+#artist {
+    font-weight: 600;
+    color: #2c5282; /* Slightly darker, less saturated blue */
+}
+
+.separator {
+    color: #a0aec0; /* Lighter separator */
+    margin: 0 4px; /* Reduced margin */
+}
+
+#track {
+    color: #2d3748; /* Darker gray for better contrast */
+}
+
+#album {
+    font-style: normal; /* Removing italic for a cleaner look */
+    color: #718096; /* Softer gray for album */
+    font-size: 12px; /* Slightly smaller */
+    margin-bottom: 10px; /* Adjusted margin */
+    min-height: 1em; /* Adjusted min-height */
+}
+
+#controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px; /* Adjusted gap */
+    margin-top: 8px; /* Added some top margin */
+}
+
+#lastfm-buttons {
+    display: flex;
+    align-items: center;
+}
+
+/* Ensuring the #love-button span itself doesn't cause issues */
+#love-button {
+    display: inline-flex; /* Helps align its content if it ever has text/other elements */
+    align-items: center;
+    justify-content: center;
+    /* The actual icon is the <a> tag inside this span */
+}
+
+#player-controls {
+    display: flex;
+    gap: 10px; /* Increased gap for better spacing */
+    align-items: center;
+}
+
+/* Bottom Section */
+#bottom {
+    border-top: 1px solid #e2e8f0; /* Softer border color */
+    padding-top: 12px; /* Slightly reduced padding */
+    margin-top: auto; /* Pushes to bottom if content is short */
+}
+
+.status-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px; /* Adjusted margin */
+    font-size: 12px;
+    color: #4a5568; /* Adjusted text color */
+}
+
+#scrobbling {
+    font-weight: 500;
+}
+
+#lastfm-profile {
+    display: flex;
+    align-items: center;
+    gap: 6px; /* Adjusted gap */
+}
+
+/* Sync Section */
+.sync-section {
+    background: #f7fafc; /* Lighter background */
+    border-radius: 6px; /* Consistent border radius */
+    padding: 12px; /* Adjusted padding */
+    border: 1px solid #e2e8f0; /* Softer border */
+    margin-top: 8px; /* Added margin if status row is present */
+}
+
+.sync-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px; /* Adjusted margin */
+}
+
+.sync-header h3 {
+    margin: 0;
+    font-size: 13px; /* Slightly smaller */
+    font-weight: 600;
+    color: #2d3748; /* Darker text */
+}
+
+.options-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px; /* Slightly smaller */
+    height: 28px;
+    border-radius: 4px; /* Adjusted radius */
+    background: #fff;
+    border: 1px solid #cbd5e0; /* Adjusted border */
+    color: #4a5568; /* Adjusted color */
+    text-decoration: none;
+    transition: all 0.2s ease-in-out;
+    cursor: pointer;
+}
+
+.options-btn:hover {
+    background: #edf2f7;
+    border-color: #a0aec0;
+    color: #2d3748;
+    /* transform: translateY(-1px); */ /* Removing transform for flatter design */
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.options-btn svg {
+    width: 14px; /* Adjust icon size */
+    height: 14px;
+}
+
+.sync-label {
+    display: block;
+    font-size: 12px; /* Adjusted size */
+    font-weight: 500;
+    color: #4a5568;
+    margin-bottom: 6px; /* Adjusted margin */
+}
+
+.radio-group {
+    margin-bottom: 12px; /* Adjusted margin */
+}
+
+.radio-option {
+    display: flex;
+    align-items: center;
+    margin-bottom: 6px; /* Adjusted margin */
+    gap: 6px; /* Adjusted gap */
+}
+
+.radio-option:last-child {
+    margin-bottom: 0;
+}
+
+.radio-option input[type="radio"] {
+    margin: 0;
+    accent-color: #3182ce; /* Modern way to color radio buttons */
+}
+
+.radio-option label {
+    font-size: 12px; /* Adjusted size */
+    color: #4a5568;
+    cursor: pointer;
+    margin: 0;
+}
+
+.date-input {
+    font-size: 12px;
+    padding: 6px 8px; /* Adjusted padding */
+    border: 1px solid #cbd5e0;
+    border-radius: 4px;
+    margin-left: 4px; /* Adjusted margin */
+    background-color: #fff;
+}
+
+.date-input:disabled {
+    background: #edf2f7;
+    color: #a0aec0;
+}
+
+.sync-btn {
+    width: 100%;
+    padding: 8px 12px; /* Adjusted padding */
+    background: #3182ce; /* Updated blue color */
+    color: white;
+    border: none;
+    border-radius: 4px; /* Consistent radius */
+    font-size: 12px; /* Adjusted size */
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s ease-in-out;
+}
+
+.sync-btn:hover {
+    background: #2b6cb0; /* Darker blue for hover */
+}
+
+.sync-btn:active {
+    background: #2c5282; /* Even darker for active */
+}
+
+.sync-status {
+    margin-top: 10px; /* Adjusted margin */
+    padding: 8px 10px; /* Adjusted padding */
+    border-radius: 4px;
+    font-size: 11px; /* Slightly smaller text */
+    text-align: center;
+    border-width: 1px;
+    border-style: solid;
+}
+
+.sync-status.success {
+    background: #f0fff4; /* Lighter green */
+    color: #2f855a; /* Darker green text */
+    border-color: #9ae6b4; /* Green border */
+}
+
+.sync-status.error {
+    background: #fff5f5; /* Lighter red */
+    color: #c53030; /* Darker red text */
+    border-color: #feb2b2; /* Red border */
+}
+
+.sync-status.info {
+    background: #ebf8ff; /* Lighter blue */
+    color: #2b6cb0; /* Darker blue text */
+    border-color: #90cdf4; /* Blue border */
+}
+
+/* Button Styles */
+a {
+    color: #1976d2;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+a:hover {
+    color: #1565c0;
+}
+
+a.logout {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    background: url('../img/logout.png') 0 0 no-repeat;
+    background-size: contain;
+    margin-left: 6px;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+}
+
+a:hover.logout {
+    opacity: 1;
+    background-position: 0 -12px;
+}
+
+a.loved, a.notloved {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    background-image: url('../img/love.png');
+    background-repeat: no-repeat;
+    background-size: contain;
+    transition: transform 0.2s;
+    /* background-color: red !important; */ /* Diagnostic CSS Removed */
+}
+
+a.loved:hover, a.notloved:hover {
+    transform: scale(1.1);
+}
+
+a.loved {
+    background-position: 0 0;
+}
+
+a.notloved {
+    background-position: 0 -20px;
+}
+
+a.play, a.pause {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    background-image: url('../img/play_pause.png');
+    background-repeat: no-repeat;
+    background-size: contain;
+    transition: transform 0.2s;
+}
+
+a.play:hover, a.pause:hover {
+    transform: scale(1.1);
+}
+
+a.play {
+    background-position: 0 0;
+}
+
+a.pause {
+    background-position: 0 -20px;
+}
+
+#prev-btn, #next-btn {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    background-repeat: no-repeat;
+    background-size: contain;
+    transition: transform 0.2s;
+}
+
+#prev-btn:hover, #next-btn:hover {
+    transform: scale(1.1);
+}
+
+#prev-btn {
+    background-image: url('../img/prev.png');
+}
+
+#next-btn {
+    background-image: url('../img/next.png');
+}
+
+/* Utility Classes */
+.hidden {
+    display: none !important;
+}
+
+.clear {
+    clear: both;
+}
+
+/* Link Styles */
+#alert a {
+    color: #1976d2;
+    text-decoration: underline;
+}
+
+#alert a:hover {
+    color: #1565c0;
+}

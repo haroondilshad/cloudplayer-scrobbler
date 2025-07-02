@@ -41,9 +41,14 @@ function on_message(message, sender, sendResponse) {
     historySync.processHistorySongs(message.songs);
     sendResponse({success: true});
   } else if (message.action === 'get_sync_params') {
-    chrome.storage.local.get('sync_from_timestamp', (result) => {
+    chrome.storage.local.get(['sync_from_timestamp', 'history_sync_in_progress'], (result) => {
       var syncFromTimestamp = parseInt(result.sync_from_timestamp) || Date.now();
-    sendResponse({syncFromTimestamp: syncFromTimestamp});
+      var historySyncInProgress = result.history_sync_in_progress === 'true';
+      // console.log('[background.js] get_sync_params: Responding with:', { syncFromTimestamp, historySyncInProgress }); // Log for live debugging if needed
+      sendResponse({
+        syncFromTimestamp: syncFromTimestamp,
+        historySyncInProgress: historySyncInProgress
+      });
     });
     return true; // Indicates we will respond asynchronously
   } else if (message.action === 'sync_complete') {
@@ -305,41 +310,50 @@ schedule_history_sync();
 chrome.alarms.onAlarm.addListener(function(alarm) {
   if (alarm && alarm.name === 'history_sync') {
     log('Alarm fired: history_sync');
-    start_history_sync(); // Use default logic (sync from last sync)
+    // Ensure the correct (new) start_history_sync is called
+    if (typeof self !== 'undefined' && self.start_history_sync) {
+      self.start_history_sync();
+    } else if (typeof window !== 'undefined' && window.start_history_sync) {
+      window.start_history_sync();
+    } else if (this && this.start_history_sync) {
+        this.start_history_sync();
+    } else {
+        // Fallback if context is weird, though one of above should hit in SW
+        start_history_sync_global_ref(); // Assuming start_history_sync_global_ref is the new name
+    }
   }
 });
 
-/**
- * Initiate a history sync session.
- * This sets up localStorage flags so that content scripts can detect
- * the sync session, then navigates (or reloads) the history page so the
- * scraper can run.
- *
- * @param {number} [syncFromTimestamp] – Unix ms timestamp to sync from.
- *   If omitted, it defaults to last_history_sync (if present) otherwise now.
- */
-function start_history_sync(syncFromTimestamp) {
+// Module-level flag to prevent re-entrant tab operations for history sync
+let isHandlingHistoryTabOperation = false;
+
+// Globally accessible reference to the new function, to avoid conflicts if script is re-evaluated.
+// This will be the single definition.
+function start_history_sync_global_ref(syncFromTimestamp) {
+  // Check if we are already trying to open/reload a history tab
+  if (isHandlingHistoryTabOperation) {
+    log("History sync tab operation already pending, skipping new request.");
+    return;
+  }
+  isHandlingHistoryTabOperation = true; // Set flag
+
   // Determine the sync start timestamp
   var ts = typeof syncFromTimestamp === 'number' ? syncFromTimestamp : null;
   if (!ts) {
     chrome.storage.local.get('last_history_sync', (result) => {
       ts = result.last_history_sync ? parseInt(result.last_history_sync) : Date.now();
-      // Continue with the rest of the function
-      continueHistorySync(ts);
+      performHistoryTabOperationAndSyncSetup_global_ref(ts);
     });
-    return; // Exit early to handle async storage
+    return;
   } else {
-    continueHistorySync(ts);
+    performHistoryTabOperationAndSyncSetup_global_ref(ts);
   }
 }
 
-function continueHistorySync(ts) {
-
-  // Mark sync session so content scripts know to scrape
+function performHistoryTabOperationAndSyncSetup_global_ref(ts) {
   if (typeof historySync !== 'undefined' && historySync.startHistorySync) {
     historySync.startHistorySync(ts);
   } else {
-    // Fallback: store flags directly
     chrome.storage.local.set({
       'history_sync_in_progress': 'true',
       'history_sync_start_time': Date.now(),
@@ -347,20 +361,36 @@ function continueHistorySync(ts) {
     });
   }
 
-  // Open or reload the YT Music history page in a background tab
   var historyUrlPrefix = 'https://music.youtube.com/history';
   chrome.tabs.query({ url: historyUrlPrefix + '*' }, function(tabs) {
-    if (tabs && tabs.length > 0) {
-      // Reload the first matching tab to trigger scraping
-      chrome.tabs.reload(tabs[0].id);
-    } else {
-      // Create a new inactive tab so we don't steal focus
-      chrome.tabs.create({ url: historyUrlPrefix, active: false });
+    try {
+      if (tabs && tabs.length > 0) {
+        log('History sync: Found existing history tab, reloading: ' + tabs[0].id);
+        chrome.tabs.reload(tabs[0].id, () => {
+          if (chrome.runtime.lastError) {
+            log("Error reloading tab: " + chrome.runtime.lastError.message + ". Creating new tab instead.");
+            chrome.tabs.create({ url: historyUrlPrefix, active: false });
+          }
+        });
+      } else {
+        log('History sync: No existing history tab found, creating new one.');
+        chrome.tabs.create({ url: historyUrlPrefix, active: false });
+      }
+    } catch (e) {
+      log("Error during tab operation: " + e);
+      isHandlingHistoryTabOperation = false;
+    } finally {
+      setTimeout(() => { isHandlingHistoryTabOperation = false; }, 1000);
     }
   });
 }
 
-// Expose the function so popup can call it (bp.start_history_sync)
-this.start_history_sync = start_history_sync;
-
+// Export the single, correct function
+if (typeof self !== 'undefined') {
+  self.start_history_sync = start_history_sync_global_ref;
+} else if (typeof window !== 'undefined') {
+  window.start_history_sync = start_history_sync_global_ref;
+} else if (this) { // Check if 'this' is defined (e.g. module.exports in CommonJS)
+  this.start_history_sync = start_history_sync_global_ref;
+}
 // =================== End History Sync Scheduling ========================

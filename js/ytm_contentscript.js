@@ -97,7 +97,16 @@ YtMusicParser.prototype._get_song_time = function() {
  */
 YtMusicParser.prototype._get_song_title = function() {
     // the text inside the div located inside element with id="playerSongTitle"
-    return $("yt-formatted-string.title.ytmusic-player-bar").text();
+    let title = $("yt-formatted-string.title.ytmusic-player-bar").text().trim();
+    // Attempt to fix simple AAAA type duplications (e.g., "TitleTitle" -> "Title")
+    if (title.length > 0 && title.length % 2 === 0) {
+        const half = title.length / 2;
+        if (title.substring(0, half) === title.substring(half)) {
+            // console.log("Original title was duplicated: ", title); // For debugging
+            title = title.substring(0, half);
+        }
+    }
+    return title;
 };
 
 /**

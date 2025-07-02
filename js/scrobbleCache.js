@@ -12,13 +12,30 @@
   function getCache(callback){
     if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
       chrome.storage.local.get('scrobble_cache', (result) => {
-        const cache = result.scrobble_cache ? JSON.parse(result.scrobble_cache) : {};
+        let cache = {};
+        if (result.scrobble_cache) {
+          try {
+            cache = JSON.parse(result.scrobble_cache);
+          } catch (e) {
+            console.error("Error parsing scrobble_cache from chrome.storage.local:", e);
+            // cache remains {}
+          }
+        }
         callback(cache);
       });
     } else {
       // Fallback for environments without chrome.storage (like tests)
+      let cache = {};
       const raw = global.localStorage && global.localStorage.getItem('scrobble_cache');
-      callback(raw ? JSON.parse(raw) : {});
+      if (raw) {
+        try {
+          cache = JSON.parse(raw);
+        } catch (e) {
+          console.error("Error parsing scrobble_cache from localStorage:", e);
+          // cache remains {}
+        }
+      }
+      callback(cache);
     }
   }
   function saveCache(cache){

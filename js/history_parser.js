@@ -60,34 +60,51 @@ setTimeout(() => {
     const songs = extractHistorySongs();
     console.log('Found', songs.length, 'total songs in history');
     
-    // Get sync parameters from background
+    // Get sync parameters from background FIRST
     chrome.runtime.sendMessage({action: 'get_sync_params'}, (response) => {
-        const syncFromTimestamp = response.syncFromTimestamp || Date.now();
+        // ADDED BLOCK START
+        if (!response || typeof response.historySyncInProgress === 'undefined') {
+            console.error('Error: Could not get sync params or historySyncInProgress is missing.');
+            return;
+        }
+
+        if (!response.historySyncInProgress) {
+            console.log('History page loaded, but not part of an active sync session. Skipping song processing.');
+            // Do NOT send any messages back to background.js, and do not parse songs.
+            return;
+        }
+        // ADDED BLOCK END
+
+        // If historySyncInProgress is true, proceed as before
+        const syncFromTimestamp = response.syncFromTimestamp || Date.now(); // This is already robust
         const syncFromDate = new Date(syncFromTimestamp);
         
-        console.log('Filtering songs from:', syncFromDate.toLocaleDateString());
+        console.log('Sync in progress. Filtering songs from:', syncFromDate.toLocaleDateString());
+
+        const songs = extractHistorySongs(); // Call extractHistorySongs only if sync is in progress
+        console.log('Found', songs.length, 'total songs in history for this sync session.');
         
-        // Filter songs based on sync date
+        // The local shouldSyncSong and parseSongDate are fine.
         const filteredSongs = songs.filter(song => {
-            return shouldSyncSong(song, syncFromDate);
+            return shouldSyncSong(song, syncFromDate); // Uses local function
         });
         
-        console.log('Found', filteredSongs.length, 'songs to sync:');
+        console.log('Found', filteredSongs.length, 'songs to sync for this session:');
         filteredSongs.forEach((song, index) => {
             console.log(`${index + 1}. ${song.artist} - ${song.title} (${song.album}) [${song.duration}] - Listened: ${song.listenDate}`);
         });
         
-        // Send filtered songs to background script for processing
         if (filteredSongs.length > 0) {
             chrome.runtime.sendMessage({
                 action: 'process_history_songs',
                 songs: filteredSongs
             });
         } else {
-            console.log('No new songs to sync since', syncFromDate.toLocaleDateString());
+            console.log('No new songs to sync since', syncFromDate.toLocaleDateString(), 'for this session.');
+            // This message is important for the background script to finalize the sync state
             chrome.runtime.sendMessage({
                 action: 'sync_complete',
-                message: 'No new songs to sync'
+                message: 'No new songs to sync for this session.'
             });
         }
     });

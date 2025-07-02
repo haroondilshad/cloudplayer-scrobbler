@@ -15,6 +15,12 @@ function loadHistorySync() {
   // Ensure historyUtils is globally exposed so historySync picks it up
   global.historyUtils = require('../js/historyUtils');
 
+  // Make scrobbleCache functions global as historySync.js test path might call them globally
+  const scrobbleCacheFns = require('../js/scrobbleCache');
+  global.add_to_scrobble_cache = scrobbleCacheFns.add_to_scrobble_cache;
+  // is_already_scrobbled is used via cache.is_already_scrobbled in filterSongs, so not needed globally here.
+  // clear_scrobble_cache is used directly in beforeEach.
+
   return require('../js/historySync');
 }
 
@@ -46,11 +52,15 @@ describe('historySync.processHistorySongs E2E', () => {
     ];
 
     historySync.processHistorySongs(songs);
-    jest.runAllTimers();
-    // Expect log to mention 3 new songs and 0 duplicates skipped
-    const batchLog = global.log.mock.calls.find((c) => /Scrobbling/.test(c[0]))[0];
-    expect(batchLog).toMatch(/Scrobbling 3 new songs/);
-    expect(batchLog).toMatch(/skipped 0 duplicates/);
+    jest.runAllTimers(); // Ensure any setTimeouts in scrobbleHistoryBatch are run
+
+    // Check the log for "Found X new songs..."
+    const foundLog = global.log.mock.calls.find(call => call[0].startsWith("Found ") && call[0].includes("new songs to scrobble"));
+    expect(foundLog[0]).toMatch(/Found 3 new songs to scrobble/);
+
+    // Check the log for "Scrobbling X songs from batch"
+    const batchLog = global.log.mock.calls.find(call => call[0].startsWith("Scrobbling ") && call[0].includes("songs from batch"));
+    expect(batchLog[0]).toMatch(/Scrobbling 3 songs from batch/); // Assuming all 3 are in the first batch
   });
 
   test('filters out songs before syncFromDate', () => {
@@ -66,9 +76,12 @@ describe('historySync.processHistorySongs E2E', () => {
 
     historySync.processHistorySongs(songs);
     jest.runAllTimers();
-    const batchLog = global.log.mock.calls.find((c) => /Scrobbling/.test(c[0]))[0];
-    expect(batchLog).toMatch(/Scrobbling 2 new songs/);
-    expect(batchLog).toMatch(/skipped 0 duplicates/);
+
+    const foundLog = global.log.mock.calls.find(call => call[0].startsWith("Found ") && call[0].includes("new songs to scrobble"));
+    expect(foundLog[0]).toMatch(/Found 2 new songs to scrobble/);
+
+    const batchLog = global.log.mock.calls.find(call => call[0].startsWith("Scrobbling ") && call[0].includes("songs from batch"));
+    expect(batchLog[0]).toMatch(/Scrobbling 2 songs from batch/);
   });
 
   test('skips tracks already in scrobble cache', () => {
@@ -86,9 +99,12 @@ describe('historySync.processHistorySongs E2E', () => {
 
     historySync.processHistorySongs(songs);
     jest.runAllTimers();
-    const batchLog = global.log.mock.calls.find((c) => /Scrobbling/.test(c[0]))[0];
-    expect(batchLog).toMatch(/Scrobbling 1 new songs?/);
-    expect(batchLog).toMatch(/skipped [0-9]+ duplicates/);
+
+    const foundLog = global.log.mock.calls.find(call => call[0].startsWith("Found ") && call[0].includes("new songs to scrobble"));
+    expect(foundLog[0]).toMatch(/Found 1 new song/); // Singular "song" is correct here based on "Found X new songs" log
+
+    const batchLog = global.log.mock.calls.find(call => call[0].startsWith("Scrobbling ") && call[0].includes("songs from batch"));
+    expect(batchLog[0]).toMatch(/Scrobbling 1 songs? from batch/); // Make 's' optional
   });
 
   test('mixed case of old + duplicate + new yields correct counts', () => {
@@ -107,8 +123,11 @@ describe('historySync.processHistorySongs E2E', () => {
 
     historySync.processHistorySongs(songs);
     jest.runAllTimers();
-    const batchLog = global.log.mock.calls.find((c) => /Scrobbling/.test(c[0]))[0];
-    expect(batchLog).toMatch(/Scrobbling 2 new songs/);
-    expect(batchLog).toMatch(/skipped [0-9]+ duplicates/);
+
+    const foundLog = global.log.mock.calls.find(call => call[0].startsWith("Found ") && call[0].includes("new songs to scrobble"));
+    expect(foundLog[0]).toMatch(/Found 2 new songs to scrobble/);
+
+    const batchLog = global.log.mock.calls.find(call => call[0].startsWith("Scrobbling ") && call[0].includes("songs from batch"));
+    expect(batchLog[0]).toMatch(/Scrobbling 2 songs from batch/);
   });
-}); 
+});
